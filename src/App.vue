@@ -257,6 +257,9 @@ const COLOR_SCHEMES = {
 const mapColors = computed(() => COLOR_SCHEMES[selectedMeasure.value.key] || COLOR_SCHEMES.gdp)
 
 const SERIES_COLORS = ['#E91E63', '#9C27B0', '#00BCD4', '#FF9800', '#4CAF50', '#2196F3', '#FF5722', '#3F51B5']
+const TREND_GRID_LEFT = 56
+const TREND_LEGEND_PANEL_WIDTH = 200
+const TREND_LEGEND_LEFT_PADDING = 10
 
 const mapChartRef = ref(null)
 const trendChartRef = ref(null)
@@ -465,6 +468,8 @@ const updateTrendChart = () => {
     return
   }
   const hasSeries = trendSeriesData.value.length > 0
+  const chartWidth = trendChart.getWidth()
+  const legendPanelLeft = Math.max(chartWidth - TREND_LEGEND_PANEL_WIDTH, 0)
   trendChart.setOption({
     tooltip: {
       trigger: 'axis',
@@ -472,8 +477,8 @@ const updateTrendChart = () => {
       valueFormatter: (value) => `${formatNumber(value)} ${selectedMeasure.value.unit}`
     },
     grid: {
-      left: '3%',
-      right: '20%',
+      left: TREND_GRID_LEFT,
+      right: TREND_LEGEND_PANEL_WIDTH,
       bottom: '3%',
       containLabel: true
     },
@@ -489,14 +494,18 @@ const updateTrendChart = () => {
     yAxis: {
       type: 'value',
       name: selectedMapMeasure.value,
+      nameLocation: 'end',
+      nameGap: 18,
       nameTextStyle: {
         fontSize: 11
       }
     },
     legend: {
       orient: 'vertical',
-      right: 0,
+      left: legendPanelLeft + TREND_LEGEND_LEFT_PADDING,
       top: 'center',
+      width: TREND_LEGEND_PANEL_WIDTH - TREND_LEGEND_LEFT_PADDING - 8,
+      align: 'left',
       itemWidth: 10,
       itemHeight: 10,
       textStyle: {
@@ -559,6 +568,7 @@ const initTrendChart = () => {
 const handleResize = () => {
   mapChart?.resize()
   trendChart?.resize()
+  updateTrendChart()
 }
 
 watch([selectedMapMeasure, selectedMapTimeframe], () => {
