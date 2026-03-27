@@ -1,16 +1,13 @@
 import { createApp } from 'vue'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import './style.css'
+import 'element-plus/es/components/button/style/css'
+import 'element-plus/es/components/checkbox/style/css'
+import 'element-plus/es/components/checkbox-group/style/css'
+import 'element-plus/es/components/icon/style/css'
+import 'element-plus/es/components/input-number/style/css'
+import 'element-plus/es/components/radio/style/css'
+import 'element-plus/es/components/radio-group/style/css'
+import 'element-plus/es/components/slider/style/css'
 
-const app = createApp(App)
-
-// 注册所有图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
-
-app.use(ElementPlus)
-app.mount('#app')
+createApp(App).mount('#app')

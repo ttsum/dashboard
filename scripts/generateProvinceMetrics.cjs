@@ -2,8 +2,8 @@ const fs = require('fs')
 const path = require('path')
 const XLSX = require('xlsx')
 
-const DATA_DIR = path.resolve(__dirname, '../src/data')
-const OUTPUT_PATH = path.join(DATA_DIR, 'provinceMetrics.json')
+const RAW_DATA_DIR = path.resolve(__dirname, '../data/raw')
+const OUTPUT_PATH = path.resolve(__dirname, '../src/data/provinceMetrics.json')
 
 const PROVINCE_LIST = [
   { name: '北京市', adcode: '110000' },
@@ -56,6 +56,26 @@ const DATA_FILES = {
     file: '城镇人口平均工资分省年度数据.xls',
     label: '收入 (元)',
     unit: '元'
+  },
+  fiscalRevenue: {
+    file: '财政收入分省年度数据.xls',
+    label: '财政收入 (亿元)',
+    unit: '亿元'
+  },
+  consumption: {
+    file: '人均消费支出分省年度数据.xls',
+    label: '人均消费支出 (元)',
+    unit: '元'
+  },
+  greenArea: {
+    file: '城市绿地面积分省年度数据.xls',
+    label: '城市绿地面积 (万公顷)',
+    unit: '万公顷'
+  },
+  roadLength: {
+    file: '道路长度分省年度数据.xls',
+    label: '道路长度 (万公里)',
+    unit: '万公里'
   }
 }
 
@@ -109,7 +129,7 @@ const parseMetricTable = (filePath) => {
 
 const metrics = {}
 for (const [metricKey, meta] of Object.entries(DATA_FILES)) {
-  const table = parseMetricTable(path.join(DATA_DIR, meta.file))
+  const table = parseMetricTable(path.join(RAW_DATA_DIR, meta.file))
   const validYears = table.years.filter((year) => (
     Object.values(table.valuesByProvince).some((provinceValues) => (
       Number.isFinite(provinceValues[year])
@@ -123,18 +143,25 @@ for (const [metricKey, meta] of Object.entries(DATA_FILES)) {
   }
 }
 
-const commonYears = metrics.gdp.years.filter((year) => (
-  metrics.population.years.includes(year) && metrics.income.years.includes(year)
+const metricKeys = Object.keys(DATA_FILES)
+const commonYears = metrics[metricKeys[0]].years.filter((year) => (
+  metricKeys.every((metricKey) => metrics[metricKey].years.includes(year))
 ))
 
 const provinces = PROVINCE_LIST.map((province) => ({
   adcode: province.adcode,
   name: province.name,
-  metrics: {
-    gdp: Object.fromEntries(commonYears.map((year) => [year, metrics.gdp.valuesByProvince[province.name]?.[year] ?? null])),
-    population: Object.fromEntries(commonYears.map((year) => [year, metrics.population.valuesByProvince[province.name]?.[year] ?? null])),
-    income: Object.fromEntries(commonYears.map((year) => [year, metrics.income.valuesByProvince[province.name]?.[year] ?? null]))
-  }
+  metrics: Object.fromEntries(
+    metricKeys.map((metricKey) => [
+      metricKey,
+      Object.fromEntries(
+        commonYears.map((year) => [
+          year,
+          metrics[metricKey].valuesByProvince[province.name]?.[year] ?? null
+        ])
+      )
+    ])
+  )
 }))
 
 const output = {
@@ -150,3 +177,5 @@ const output = {
 
 fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(output, null, 2)}\n`, 'utf-8')
 console.log(`Generated ${OUTPUT_PATH}`)
+
+
