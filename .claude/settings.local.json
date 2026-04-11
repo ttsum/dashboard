@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -m pip install pandas openpyxl xlrd -q)",
+      "Bash(where python:*)",
+      "Bash(python -c \"import pandas; print\\(''pandas available''\\)\")",
+      "Bash(npm list:*)",
+      "Bash(node parseXLS.js)",
+      "Bash(node parseXLS.cjs)",
+      "Bash(node inspectXLS.cjs)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
