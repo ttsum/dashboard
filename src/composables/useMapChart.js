@@ -305,18 +305,49 @@ const buildLabelData = (labelGeoJson) => (
     .filter(Boolean)
 )
 
+const getLegendItemForValue = (value, legendItems) => (
+  legendItems.find(
+    (legendItem) => Number.isFinite(value)
+      && value >= legendItem.min
+      && value <= legendItem.max
+  )
+)
+
 const buildColoredMapData = (seriesData, legendItems) => (
   seriesData.map((item) => ({
     name: item.name,
     value: item.value,
-    tierLabel: legendItems.find(
-      (legendItem) => Number.isFinite(item.value)
-        && item.value >= legendItem.min
-        && item.value <= legendItem.max
-    )?.label || '鏆傛棤鏁版嵁',
-    itemStyle: Number.isFinite(item.value)
-      ? { opacity: MAP_FILL_OPACITY }
-      : { areaColor: '#d1d5db', opacity: MAP_FILL_OPACITY }
+    tierLabel: getLegendItemForValue(item.value, legendItems)?.label || '暂无数据',
+    color: getLegendItemForValue(item.value, legendItems)?.color || '#d1d5db'
+  }))
+)
+
+const buildGeoRegions = (coloredMapData, selectedCountyNames = []) => {
+  const selectedNames = new Set(selectedCountyNames)
+
+  return coloredMapData.map((item) => ({
+    name: item.name,
+    itemStyle: {
+      areaColor: item.color,
+      opacity: MAP_FILL_OPACITY,
+      borderColor: selectedNames.has(item.name) ? '#002d56' : 'rgba(0,0,0,0)',
+      borderWidth: selectedNames.has(item.name) ? 1.5 : 0,
+      shadowColor: selectedNames.has(item.name) ? 'rgba(0, 45, 86, 0.22)' : 'rgba(0,0,0,0)',
+      shadowBlur: selectedNames.has(item.name) ? 10 : 0
+    }
+  }))
+}
+
+const buildTooltipMapData = (coloredMapData) => (
+  coloredMapData.map((item) => ({
+    name: item.name,
+    value: item.value,
+    tierLabel: item.tierLabel,
+    itemStyle: {
+      areaColor: 'rgba(0,0,0,0)',
+      borderColor: 'rgba(0,0,0,0)',
+      opacity: 0
+    }
   }))
 )
 
@@ -341,17 +372,15 @@ export function useMapChart({
   )
 
   const syncMapSelection = () => {
-    if (!mapChart) {
+    if (!mapChart || !geoJson.value) {
       return
     }
 
-    const selectedNames = new Set(selectedCountyNames.value)
-    countyNames.value.forEach((countyName) => {
-      mapChart.dispatchAction({
-        type: selectedNames.has(countyName) ? 'select' : 'unselect',
-        seriesIndex: 0,
-        name: countyName
-      })
+    const coloredMapData = buildColoredMapData(mapSeriesData.value, mapLegendItems.value)
+    mapChart.setOption({
+      geo: {
+        regions: buildGeoRegions(coloredMapData, selectedCountyNames.value)
+      }
     })
   }
 
@@ -525,6 +554,7 @@ export function useMapChart({
     const cityLabelData = buildLabelData(cityGeoJson.value)
     const countyLabelData = buildLabelData(geoJson.value)
     const coloredMapData = buildColoredMapData(mapSeriesData.value, mapLegendItems.value)
+    const tooltipMapData = buildTooltipMapData(coloredMapData)
 
     console.log('countyBoundaryLines count:', countyBoundaryLines.length)
     console.log('cityBoundaryLines count:', cityBoundaryLines.length)
@@ -532,19 +562,9 @@ export function useMapChart({
     console.log('coloredMapData sample:', coloredMapData.slice(0, 3))
 
     mapChart.setOption({
-      visualMap: {
-        show: false,
-        type: 'piecewise',
-        seriesIndex: 0,
-        pieces: mapLegendItems.value.map((item) => ({
-          min: item.min,
-          max: item.max,
-          color: item.color
-        })),
-        outOfRange: {
-          color: '#d1d5db'
-        }
-      },
+      animation: false,
+      animationDuration: 0,
+      animationDurationUpdate: 0,
       tooltip: {
         trigger: 'item',
         triggerOn: 'none',
@@ -579,12 +599,14 @@ export function useMapChart({
         projection: MERCATOR_PROJECTION,
         roam: true,
         zoom: INITIAL_MAP_ZOOM,
+        regions: buildGeoRegions(coloredMapData, selectedCountyNames.value),
         scaleLimit: {
           min: 1,
           max: 8
         },
         itemStyle: {
-          areaColor: 'rgba(0,0,0,0)',
+          areaColor: '#d1d5db',
+          opacity: MAP_FILL_OPACITY,
           borderColor: 'rgba(0,0,0,0)',
           borderWidth: 0
         },
@@ -601,30 +623,25 @@ export function useMapChart({
           projection: MERCATOR_PROJECTION,
           geoIndex: 0,
           z: 1,
-          selectedMode: 'multiple',
+          animation: false,
+          silent: false,
           itemStyle: {
+            areaColor: 'rgba(0,0,0,0)',
             borderColor: 'rgba(0,0,0,0)',
+            opacity: 0,
             borderWidth: 0
           },
           emphasis: {
             label: { show: false },
             itemStyle: {
+              areaColor: 'rgba(0,0,0,0)',
               borderColor: 'rgba(0,0,0,0)',
+              opacity: 0,
               borderWidth: 0,
-              shadowColor: 'rgba(15, 23, 42, 0.16)',
-              shadowBlur: 8
+              shadowBlur: 0
             }
           },
-          select: {
-            label: { show: false },
-            itemStyle: {
-              borderColor: 'rgba(0,0,0,0)',
-              borderWidth: 0,
-              shadowColor: 'rgba(0, 45, 86, 0.22)',
-              shadowBlur: 10
-            }
-          },
-          data: coloredMapData
+          data: tooltipMapData
         },
         {
           name: 'county-boundary-overlay',
