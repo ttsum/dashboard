@@ -5,6 +5,16 @@
     </div>
 
     <div class="map-container">
+      <ElButton
+        type="primary"
+        size="small"
+        class="reset-map-btn"
+        :disabled="isGeoJsonLoading || Boolean(geoJsonError)"
+        @click="resetMapView"
+      >
+        还原地图
+      </ElButton>
+
       <div
         v-if="isGeoJsonLoading || geoJsonError"
         class="map-status"
@@ -51,6 +61,7 @@
 
 <script setup>
 import { ref, toRef } from 'vue'
+import { ElButton } from 'element-plus'
 import { useMapChart } from '../../composables/useMapChart'
 
 const props = defineProps({
@@ -71,7 +82,7 @@ const props = defineProps({
 const emit = defineEmits(['toggleCounty'])
 const mapChartRef = ref(null)
 
-useMapChart({
+const { resetMapView } = useMapChart({
   chartRef: mapChartRef,
   geoJson: toRef(props, 'geoJson'),
   cityGeoJson: toRef(props, 'cityGeoJson'),
@@ -122,6 +133,19 @@ useMapChart({
 
 .map-chart.is-hidden {
   visibility: hidden;
+}
+
+.reset-map-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 12;
+  min-height: 34px;
+  padding: 7px 13px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
 }
 
 .map-status {

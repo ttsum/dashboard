@@ -638,6 +638,19 @@ export function useMapChart({
     mapChart?.resize()
   }
 
+  const resetMapView = () => {
+    if (!mapChart || !geoJson.value || !cityGeoJson.value) {
+      return
+    }
+
+    hideCountyTip()
+    updateMapChart()
+    requestAnimationFrame(() => {
+      mapChart?.resize()
+      syncMapSelection()
+    })
+  }
+
   watch(
     [geoJson, cityGeoJson, mapLegendItems, mapSeriesData, selectedMeasure],
     () => {
@@ -661,4 +674,8 @@ export function useMapChart({
     mapChart?.getZr().off('globalout', handleCanvasMouseOut)
     mapChart?.dispose()
   })
+
+  return {
+    resetMapView
+  }
 }
