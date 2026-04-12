@@ -22,6 +22,33 @@ const getGeometryRings = (geometry) => {
 const EDGE_PRECISION = 6
 const cityBoundaryLineCache = new WeakMap()
 const MAP_FILL_OPACITY = 0.9
+const DEGREE_TO_RADIAN = Math.PI / 180
+const RADIAN_TO_DEGREE = 180 / Math.PI
+const MERCATOR_MAX_LATITUDE = 85.0511287798
+
+const clampMercatorLatitude = (latitude) => (
+  Math.max(-MERCATOR_MAX_LATITUDE, Math.min(MERCATOR_MAX_LATITUDE, Number(latitude)))
+)
+
+const MERCATOR_PROJECTION = {
+  project: (point) => {
+    const longitude = Number(point[0])
+    const latitude = clampMercatorLatitude(point[1])
+    const mercatorY = Math.log(Math.tan((Math.PI / 4) + (latitude * DEGREE_TO_RADIAN / 2)))
+
+    return [
+      longitude,
+      mercatorY * RADIAN_TO_DEGREE
+    ]
+  },
+  unproject: (point) => {
+    const longitude = Number(point[0])
+    const mercatorY = Number(point[1]) * DEGREE_TO_RADIAN
+    const latitude = (2 * Math.atan(Math.exp(mercatorY)) - (Math.PI / 2)) * RADIAN_TO_DEGREE
+
+    return [longitude, latitude]
+  }
+}
 
 const toPointKey = (point) => (
   `${Number(point[0]).toFixed(EDGE_PRECISION)},${Number(point[1]).toFixed(EDGE_PRECISION)}`
@@ -502,6 +529,7 @@ export function useMapChart({
       },
       geo: {
         map: MAP_NAME,
+        projection: MERCATOR_PROJECTION,
         roam: true,
         zoom: 1.1,
         scaleLimit: {
@@ -523,6 +551,7 @@ export function useMapChart({
           name: 'county-main',
           type: 'map',
           map: MAP_NAME,
+          projection: MERCATOR_PROJECTION,
           geoIndex: 0,
           z: 1,
           selectedMode: 'multiple',
