@@ -8,7 +8,7 @@
       </div>
 
       <div class="header-title">
-        <span class="org-name">安徽省县域统计监测</span>
+        <span class="org-name">江西省县域统计监测</span>
         <span class="main-title">区县经济与民生指标看板</span>
       </div>
     </div>
@@ -16,7 +16,7 @@
     <div class="header-center">
       <div class="task-panel">
         <span class="task-label">任务内容</span>
-        <span class="task-text">找到2020年合肥市瑶海区的GDP数量</span>
+        <span class="task-text">找到2020年南昌市东湖区的GDP数量</span>
       </div>
     </div>
 

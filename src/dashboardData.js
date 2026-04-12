@@ -1,5 +1,5 @@
-import anhuiCountyMetrics from './data/anhuiCountyMetrics.json'
+import jiangxiCountyMetrics from './data/jiangxiCountyMetrics.json'
 
-export const YEAR_OPTIONS = anhuiCountyMetrics.years
-export const MEASURE_CONFIG = anhuiCountyMetrics.measures
-export const COUNTIES = anhuiCountyMetrics.counties
+export const YEAR_OPTIONS = jiangxiCountyMetrics.years
+export const MEASURE_CONFIG = jiangxiCountyMetrics.measures
+export const COUNTIES = jiangxiCountyMetrics.counties

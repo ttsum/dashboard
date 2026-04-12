@@ -1,6 +1,6 @@
 import { markRaw, onMounted, shallowRef } from 'vue'
-import anhuiCountyGeoJsonUrl from '../assets/geo/anhui-counties.raw.geo.json?url'
-import anhuiCityGeoJsonUrl from '../assets/geo/anhui-cities.raw.geo.json?url'
+import jiangxiCountyGeoJsonUrl from '../assets/geo/jiangxi-counties.raw.geo.json?url'
+import jiangxiCityGeoJsonUrl from '../assets/geo/jiangxi-cities.raw.geo.json?url'
 
 let cachedCountyGeoJson = null
 let cachedCityGeoJson = null
@@ -29,13 +29,13 @@ const toCityGeoJson = (geoJson) => markRaw({
   )
 })
 
-export function useAnhuiGeoJson() {
+export function useJiangxiGeoJson() {
   const geoJson = shallowRef(cachedCountyGeoJson)
   const cityGeoJson = shallowRef(cachedCityGeoJson)
   const isGeoJsonLoading = shallowRef(!cachedCountyGeoJson || !cachedCityGeoJson)
   const geoJsonError = shallowRef('')
 
-  const loadAnhuiGeoJson = async () => {
+  const loadJiangxiGeoJson = async () => {
     if (cachedCountyGeoJson && cachedCityGeoJson) {
       geoJson.value = cachedCountyGeoJson
       cityGeoJson.value = cachedCityGeoJson
@@ -49,13 +49,13 @@ export function useAnhuiGeoJson() {
     try {
       if (!geoJsonPromise) {
         geoJsonPromise = Promise.all([
-          fetch(anhuiCountyGeoJsonUrl).then((response) => {
+          fetch(jiangxiCountyGeoJsonUrl).then((response) => {
             if (!response.ok) {
               throw new Error(`County HTTP ${response.status}`)
             }
             return response.json()
           }),
-          fetch(anhuiCityGeoJsonUrl).then((response) => {
+          fetch(jiangxiCityGeoJsonUrl).then((response) => {
             if (!response.ok) {
               throw new Error(`City HTTP ${response.status}`)
             }
@@ -77,13 +77,13 @@ export function useAnhuiGeoJson() {
     }
   }
 
-  onMounted(loadAnhuiGeoJson)
+  onMounted(loadJiangxiGeoJson)
 
   return {
     geoJson,
     cityGeoJson,
     isGeoJsonLoading,
     geoJsonError,
-    loadAnhuiGeoJson
+    loadJiangxiGeoJson
   }
 }

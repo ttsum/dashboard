@@ -63,10 +63,10 @@ import FilterPanel from './components/dashboard/FilterPanel.vue'
 import MapPanel from './components/dashboard/MapPanel.vue'
 import TrendPanel from './components/dashboard/TrendPanel.vue'
 import { useDashboardState } from './composables/useDashboardState'
-import { useAnhuiGeoJson } from './composables/useAnhuiGeoJson'
+import { useJiangxiGeoJson } from './composables/useJiangxiGeoJson'
 import { MAP_SOURCE_TEXT } from './constants/dashboard'
 
-const { geoJson, cityGeoJson, isGeoJsonLoading, geoJsonError } = useAnhuiGeoJson()
+const { geoJson, cityGeoJson, isGeoJsonLoading, geoJsonError } = useJiangxiGeoJson()
 
 const {
   mapMeasures,
