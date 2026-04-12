@@ -477,7 +477,7 @@ export function useMapChart({
         alwaysShowContent: false,
         confine: true,
         textStyle: {
-          fontSize: 14
+          fontSize: 16
         },
         formatter: (params) => {
           // 甯傜骇鏍囩涓嶆樉绀簍ooltip
@@ -591,14 +591,14 @@ export function useMapChart({
           label: {
             show: true,
             color: '#1f2937',
-            fontSize: 15,
+            fontSize: 17,
             fontWeight: 600,
             fontStyle: 'italic',
-            padding: [3, 6],
+            padding: [4, 8],
             backgroundColor: 'rgba(249, 250, 251, 0.96)',
             borderRadius: 4,
             textBorderColor: 'rgba(249, 250, 251, 1)',
-            textBorderWidth: 4,
+            textBorderWidth: 5,
             shadowColor: 'rgba(255, 255, 255, 0.7)',
             shadowBlur: 2,
             formatter: (params) => params.data?.name || ''

@@ -26,7 +26,7 @@ export function useTrendChart({
         trigger: 'axis',
         axisPointer: { type: 'cross' },
         textStyle: {
-          fontSize: 13
+          fontSize: 16
         },
         valueFormatter: (value) => (
           value == null ? '暂无统计数据' : `${formatNumber(value)} ${selectedMeasure.value.unit}`
@@ -35,7 +35,7 @@ export function useTrendChart({
       grid: {
         left: TREND_LAYOUT.gridLeft,
         right: TREND_LAYOUT.legendPanelWidth,
-        bottom: '3%',
+        bottom: 36,
         containLabel: true
       },
       xAxis: {
@@ -44,28 +44,34 @@ export function useTrendChart({
         data: trendYears.value.map((year) => String(year)),
         axisLabel: {
           rotate: 45,
-          fontSize: 12
+          fontSize: 14,
+          hideOverlap: false
         }
       },
       yAxis: {
         type: 'value',
         name: selectedMeasureLabel.value,
         nameLocation: 'end',
-        nameGap: 18,
+        nameGap: 24,
         nameTextStyle: {
-          fontSize: 13
+          fontSize: 15
+        },
+        axisLabel: {
+          fontSize: 14
         }
       },
       legend: {
         orient: 'vertical',
         left: legendPanelLeft + TREND_LAYOUT.legendLeftPadding,
         top: 'center',
-        width: TREND_LAYOUT.legendPanelWidth - TREND_LAYOUT.legendLeftPadding - 8,
+        width: TREND_LAYOUT.legendPanelWidth - TREND_LAYOUT.legendLeftPadding - 12,
         align: 'left',
-        itemWidth: 10,
-        itemHeight: 10,
+        itemWidth: 12,
+        itemHeight: 12,
         textStyle: {
-          fontSize: 13
+          fontSize: 15,
+          overflow: 'break',
+          width: TREND_LAYOUT.legendPanelWidth - TREND_LAYOUT.legendLeftPadding - 34
         }
       },
       series: trendSeriesData.value.map((item) => ({
@@ -85,7 +91,7 @@ export function useTrendChart({
         style: {
           text: EMPTY_TREND_TEXT,
           fill: '#9CA3AF',
-          fontSize: 15
+          fontSize: 18
         }
       }]
     }, true)

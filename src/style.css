@@ -13,8 +13,11 @@ body,
 }
 
 body {
+  --el-font-size-base: 17px;
+  --el-font-size-small: 15px;
+  --el-font-size-extra-small: 14px;
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.5;
   color: #1f2937;
   background-color: #e5e7eb;

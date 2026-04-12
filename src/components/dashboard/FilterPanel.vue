@@ -146,11 +146,11 @@ const emit = defineEmits([
 <style scoped>
 .filter-panel {
   --dashboard-font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --option-font-size: 15px;
+  --option-font-size: 17px;
   --option-font-weight: 500;
-  --option-line-height: 1.3;
+  --option-line-height: 1.4;
   --option-color: #4b5563;
-  --option-label-gap: 8px;
+  --option-label-gap: 10px;
   display: grid;
   grid-template-columns: 1.5fr 1fr 1.7fr 1.1fr;
   gap: 8px;
@@ -171,7 +171,7 @@ const emit = defineEmits([
 .filter-header {
   margin-bottom: 6px;
   padding-bottom: 4px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: #374151;
   border-bottom: 1px solid #e5e7eb;
@@ -186,7 +186,7 @@ const emit = defineEmits([
 
 .clear-btn {
   padding: 0;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1;
 }
 
@@ -211,7 +211,7 @@ const emit = defineEmits([
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 3px 6px;
-  max-height: 150px;
+  max-height: 178px;
   padding-right: 4px;
   overflow-y: auto;
   align-content: start;
@@ -234,7 +234,7 @@ const emit = defineEmits([
 }
 
 .measure-radio-group :deep(.el-radio__label) {
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .year-radio-group :deep(.el-radio__label),
@@ -245,33 +245,37 @@ const emit = defineEmits([
 .timeframe-inputs {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .year-input {
-  width: 62px !important;
+  width: 96px !important;
+}
+
+.year-input :deep(.el-input__wrapper) {
+  min-height: 36px;
 }
 
 .year-input :deep(.el-input__inner) {
-  height: 28px;
-  padding: 0 4px;
-  font-size: 13px;
-  line-height: 28px;
+  height: 36px;
+  padding: 0 8px;
+  font-size: 17px;
+  line-height: 36px;
   text-align: center;
 }
 
 .year-separator {
-  font-size: 13px;
+  font-size: 17px;
   color: #6b7280;
 }
 
 .slider-container {
-  padding: 0 4px;
+  padding: 0 20px 10px;
 }
 
 .slider-container :deep(.el-slider__marks-text) {
-  font-size: 11px;
+  font-size: 14px;
   color: #9ca3af;
 }
 
