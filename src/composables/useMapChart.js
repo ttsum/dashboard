@@ -22,6 +22,8 @@ const getGeometryRings = (geometry) => {
 const EDGE_PRECISION = 6
 const cityBoundaryLineCache = new WeakMap()
 const MAP_FILL_OPACITY = 0.9
+const INITIAL_MAP_ZOOM = 1.1
+const COUNTY_LABEL_MIN_ZOOM = 2.35
 const DEGREE_TO_RADIAN = Math.PI / 180
 const RADIAN_TO_DEGREE = 180 / Math.PI
 const MERCATOR_MAX_LATITUDE = 85.0511287798
@@ -281,8 +283,8 @@ const isPointInPolygonGeometry = (point, geometry) => {
   return false
 }
 
-const buildCityLabelData = (cityGeoJson) => (
-  (cityGeoJson?.features || [])
+const buildLabelData = (labelGeoJson) => (
+  (labelGeoJson?.features || [])
     .map((feature) => {
       const name = feature?.properties?.name
       const cp = feature?.properties?.centroid
@@ -332,6 +334,7 @@ export function useMapChart({
 }) {
   let mapChart = null
   let hoveredCountyName = ''
+  let labelVisibilityFrame = null
 
   const getCountyDataIndex = (name) => (
     mapSeriesData.value.findIndex((item) => item.name === name)
@@ -468,6 +471,49 @@ export function useMapChart({
     }
   }
 
+  const getCurrentGeoZoom = () => {
+    const option = mapChart?.getOption()
+    const zoom = Number(option?.geo?.[0]?.zoom)
+    return Number.isFinite(zoom) ? zoom : INITIAL_MAP_ZOOM
+  }
+
+  const applyLabelVisibility = (zoom = getCurrentGeoZoom()) => {
+    if (!mapChart) {
+      return
+    }
+
+    const showCountyLabels = zoom >= COUNTY_LABEL_MIN_ZOOM
+
+    mapChart.setOption({
+      series: [
+        {},
+        {},
+        {},
+        {
+          label: {
+            show: !showCountyLabels
+          }
+        },
+        {
+          label: {
+            show: showCountyLabels
+          }
+        }
+      ]
+    })
+  }
+
+  const scheduleLabelVisibilityUpdate = () => {
+    if (labelVisibilityFrame) {
+      return
+    }
+
+    labelVisibilityFrame = requestAnimationFrame(() => {
+      labelVisibilityFrame = null
+      applyLabelVisibility()
+    })
+  }
+
   const updateMapChart = () => {
     if (!mapChart || !geoJson.value || !cityGeoJson.value) {
       console.log('updateMapChart skipped:', { mapChart: !!mapChart, geoJson: !!geoJson.value, cityGeoJson: !!cityGeoJson.value })
@@ -476,7 +522,8 @@ export function useMapChart({
 
     const countyBoundaryLines = buildCountyBoundaryLines(geoJson.value)
     const cityBoundaryLines = buildCityBoundaryLines(geoJson.value)
-    const cityLabelData = buildCityLabelData(cityGeoJson.value)
+    const cityLabelData = buildLabelData(cityGeoJson.value)
+    const countyLabelData = buildLabelData(geoJson.value)
     const coloredMapData = buildColoredMapData(mapSeriesData.value, mapLegendItems.value)
 
     console.log('countyBoundaryLines count:', countyBoundaryLines.length)
@@ -531,7 +578,7 @@ export function useMapChart({
         map: MAP_NAME,
         projection: MERCATOR_PROJECTION,
         roam: true,
-        zoom: 1.1,
+        zoom: INITIAL_MAP_ZOOM,
         scaleLimit: {
           min: 1,
           max: 8
@@ -617,6 +664,9 @@ export function useMapChart({
           tooltip: { show: false },
           z: 40,
           symbolSize: 0,
+          labelLayout: {
+            hideOverlap: true
+          },
           label: {
             show: true,
             color: '#1f2937',
@@ -636,11 +686,42 @@ export function useMapChart({
             disabled: true
           },
           data: cityLabelData
+        },
+        {
+          name: 'county-label-overlay',
+          type: 'scatter',
+          coordinateSystem: 'geo',
+          silent: true,
+          tooltip: { show: false },
+          z: 45,
+          symbolSize: 0,
+          labelLayout: {
+            hideOverlap: true
+          },
+          label: {
+            show: false,
+            color: '#111827',
+            fontSize: 13,
+            fontWeight: 600,
+            padding: [2, 5],
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: 4,
+            textBorderColor: 'rgba(255, 255, 255, 1)',
+            textBorderWidth: 3,
+            shadowColor: 'rgba(255, 255, 255, 0.6)',
+            shadowBlur: 2,
+            formatter: (params) => params.data?.name || ''
+          },
+          emphasis: {
+            disabled: true
+          },
+          data: countyLabelData
         }
       ]
     }, true)
 
     syncMapSelection()
+    applyLabelVisibility(INITIAL_MAP_ZOOM)
   }
 
   const initMapChart = () => {
@@ -651,6 +732,7 @@ export function useMapChart({
     if (!mapChart) {
       echarts.registerMap(MAP_NAME, geoJson.value)
       mapChart = echarts.init(chartRef.value)
+      mapChart.on('georoam', scheduleLabelVisibilityUpdate)
       mapChart.getZr().on('click', handleCanvasClick)
       mapChart.getZr().on('mousemove', handleCanvasMouseMove)
       mapChart.getZr().on('globalout', handleCanvasMouseOut)
@@ -701,6 +783,10 @@ export function useMapChart({
     mapChart?.getZr().off('click', handleCanvasClick)
     mapChart?.getZr().off('mousemove', handleCanvasMouseMove)
     mapChart?.getZr().off('globalout', handleCanvasMouseOut)
+    mapChart?.off('georoam', scheduleLabelVisibilityUpdate)
+    if (labelVisibilityFrame) {
+      cancelAnimationFrame(labelVisibilityFrame)
+    }
     mapChart?.dispose()
   })
 
