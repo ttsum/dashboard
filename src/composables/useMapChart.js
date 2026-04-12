@@ -38,12 +38,12 @@ const MERCATOR_PROJECTION = {
 
     return [
       longitude,
-      mercatorY * RADIAN_TO_DEGREE
+      -mercatorY * RADIAN_TO_DEGREE
     ]
   },
   unproject: (point) => {
     const longitude = Number(point[0])
-    const mercatorY = Number(point[1]) * DEGREE_TO_RADIAN
+    const mercatorY = -Number(point[1]) * DEGREE_TO_RADIAN
     const latitude = (2 * Math.atan(Math.exp(mercatorY)) - (Math.PI / 2)) * RADIAN_TO_DEGREE
 
     return [longitude, latitude]
