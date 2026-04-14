@@ -31,6 +31,15 @@ const RADIAN_TO_DEGREE = 180 / Math.PI
 const MERCATOR_MAX_LATITUDE = 85.0511287798
 const MAP_DOM_EVENT_OPTIONS = { capture: true, passive: true }
 const ROAM_IDLE_DELAY = 90
+const DENSE_COUNTY_LABEL_OFFSETS = {
+  东湖区: [0, -34],
+  西湖区: [-48, 18],
+  青云谱区: [42, 28],
+  青山湖区: [-34, -14],
+  新建区: [46, -16],
+  红谷滩区: [-58, 36],
+  南昌县: [62, 30]
+}
 
 const clampMercatorLatitude = (latitude) => (
   Math.max(-MERCATOR_MAX_LATITUDE, Math.min(MERCATOR_MAX_LATITUDE, Number(latitude)))
@@ -313,12 +322,13 @@ const isPointInPolygonGeometry = (point, geometry) => {
   return false
 }
 
-const buildLabelData = (labelGeoJson) => {
+const buildLabelData = (labelGeoJson, labelType = 'default') => {
   if (!labelGeoJson) {
     return []
   }
 
-  const cachedLabelData = labelDataCache.get(labelGeoJson)
+  const cachedLabelDataByType = labelDataCache.get(labelGeoJson)
+  const cachedLabelData = cachedLabelDataByType?.get(labelType)
   if (cachedLabelData) {
     return cachedLabelData
   }
@@ -338,12 +348,17 @@ const buildLabelData = (labelGeoJson) => {
 
       return {
         name,
-        value: [lng, lat, name]
+        value: [lng, lat, name],
+        label: labelType === 'county' && DENSE_COUNTY_LABEL_OFFSETS[name]
+          ? { offset: DENSE_COUNTY_LABEL_OFFSETS[name] }
+          : undefined
       }
     })
     .filter(Boolean)
 
-  labelDataCache.set(labelGeoJson, labelData)
+  const nextLabelDataByType = cachedLabelDataByType || new Map()
+  nextLabelDataByType.set(labelType, labelData)
+  labelDataCache.set(labelGeoJson, nextLabelDataByType)
   return labelData
 }
 
@@ -941,8 +956,8 @@ export function useMapChart({
     const countyBoundaryLines = buildCountyBoundaryLines(geoJson.value)
     const cityBoundaryLines = buildCityBoundaryLines(geoJson.value)
     const provinceBoundaryLines = buildCountyBoundaryLines(provinceGeoJson.value)
-    const cityLabelData = buildLabelData(cityGeoJson.value)
-    const countyLabelData = buildLabelData(geoJson.value)
+    const cityLabelData = buildLabelData(cityGeoJson.value, 'city')
+    const countyLabelData = buildLabelData(geoJson.value, 'county')
     const coloredMapData = buildColoredMapData(mapSeriesData.value, mapLegendItems.value)
     const tooltipMapData = buildTooltipMapData(coloredMapData)
     const selectedCountyBoundaryLines = buildSelectedCountyBoundaryLines(
@@ -1067,10 +1082,12 @@ export function useMapChart({
           z: 40,
           symbolSize: 0,
           labelLayout: {
-            hideOverlap: true
+            hideOverlap: true,
+            moveOverlap: 'shiftY'
           },
           label: {
             show: true,
+            position: 'inside',
             color: '#1f2937',
             fontSize: 13,
             fontWeight: 600,
@@ -1098,10 +1115,12 @@ export function useMapChart({
           z: 45,
           symbolSize: 0,
           labelLayout: {
-            hideOverlap: true
+            hideOverlap: true,
+            moveOverlap: 'shiftY'
           },
           label: {
             show: false,
+            position: 'inside',
             color: '#111827',
             fontSize: 10,
             fontWeight: 600,
