@@ -16,7 +16,14 @@
     <div class="header-center">
       <div class="task-panel">
         <span class="task-label">任务内容</span>
-        <span class="task-text">找到2020年南昌市东湖区的GDP数量</span>
+        <span class="task-text">{{ currentTask }}</span>
+        <button
+          class="next-task-btn"
+          type="button"
+          @click="showNextTask"
+        >
+          下一个
+        </button>
       </div>
     </div>
 
@@ -27,9 +34,21 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { ElIcon } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
+
+const TASKS = [
+  '找到2020年南昌市东湖区的GDP数量',
+  '比较宜春市宜丰县和上饶市弋阳县哪个GDP高'
+]
+
+const currentTaskIndex = ref(0)
+const currentTask = computed(() => TASKS[currentTaskIndex.value])
+
+const showNextTask = () => {
+  currentTaskIndex.value = (currentTaskIndex.value + 1) % TASKS.length
+}
 
 const currentDate = computed(() => {
   const now = new Date()
@@ -82,7 +101,7 @@ const currentDate = computed(() => {
 
 .task-panel {
   position: relative;
-  width: min(760px, 100%);
+  width: min(900px, 100%);
   min-width: 0;
   display: flex;
   align-items: center;
@@ -108,7 +127,7 @@ const currentDate = computed(() => {
 .task-label {
   flex-shrink: 0;
   padding: 6px 13px;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   color: #78350f;
   letter-spacing: 0.5px;
@@ -118,9 +137,10 @@ const currentDate = computed(() => {
 }
 
 .task-text {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: #fffdf5;
   letter-spacing: 0.3px;
@@ -129,20 +149,42 @@ const currentDate = computed(() => {
   white-space: nowrap;
 }
 
+.next-task-btn {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 6px 13px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #002d56;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+}
+
+.next-task-btn:hover {
+  background: #f8fafc;
+}
+
+.next-task-btn:active {
+  transform: translateY(1px);
+}
+
 .org-name {
-  font-size: 16px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 0.5px;
 }
 
 .main-title {
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 700;
   letter-spacing: 1px;
 }
 
 .date-text {
-  font-size: 18px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -164,11 +206,17 @@ const currentDate = computed(() => {
 
   .task-label {
     padding: 3px 8px;
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .task-text {
-    font-size: 15px;
+    font-size: 12px;
+  }
+
+  .next-task-btn {
+    min-height: 30px;
+    padding: 4px 9px;
+    font-size: 11px;
   }
 }
 </style>

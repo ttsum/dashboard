@@ -49,7 +49,7 @@ useTrendChart({
   flex-shrink: 0;
   margin-bottom: 6px;
   padding: 8px 8px 4px;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #1f2937;
   background-color: #fff;
@@ -59,6 +59,7 @@ useTrendChart({
 
 .chart-container {
   flex: 1;
+  align-self: stretch;
   min-height: 0;
   min-height: 360px;
   background-color: #fff;

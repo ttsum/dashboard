@@ -27,6 +27,8 @@ const COUNTY_LABEL_MIN_ZOOM = 2.35
 const DEGREE_TO_RADIAN = Math.PI / 180
 const RADIAN_TO_DEGREE = 180 / Math.PI
 const MERCATOR_MAX_LATITUDE = 85.0511287798
+const MAP_DOM_EVENT_OPTIONS = { capture: true, passive: true }
+const ROAM_IDLE_DELAY = 90
 
 const clampMercatorLatitude = (latitude) => (
   Math.max(-MERCATOR_MAX_LATITUDE, Math.min(MERCATOR_MAX_LATITUDE, Number(latitude)))
@@ -212,6 +214,20 @@ const buildCountyBoundaryLines = (countyGeoJson) => (
     .map((ring) => ({ coords: ring }))
 )
 
+const buildSelectedCountyBoundaryLines = (countyGeoJson, selectedCountyNames = []) => {
+  const selectedNames = new Set(selectedCountyNames)
+
+  if (!selectedNames.size) {
+    return []
+  }
+
+  return (countyGeoJson?.features || [])
+    .filter((feature) => selectedNames.has(feature?.properties?.name))
+    .flatMap((feature) => getGeometryRings(feature.geometry))
+    .filter((ring) => Array.isArray(ring) && ring.length > 1)
+    .map((ring) => ({ coords: ring }))
+}
+
 const isLngLat = (point) => (
   Array.isArray(point)
   && point.length >= 2
@@ -325,17 +341,21 @@ const buildColoredMapData = (seriesData, legendItems) => (
 const buildGeoRegions = (coloredMapData, selectedCountyNames = []) => {
   const selectedNames = new Set(selectedCountyNames)
 
-  return coloredMapData.map((item) => ({
-    name: item.name,
-    itemStyle: {
-      areaColor: item.color,
-      opacity: MAP_FILL_OPACITY,
-      borderColor: selectedNames.has(item.name) ? '#002d56' : 'rgba(0,0,0,0)',
-      borderWidth: selectedNames.has(item.name) ? 1.5 : 0,
-      shadowColor: selectedNames.has(item.name) ? 'rgba(0, 45, 86, 0.22)' : 'rgba(0,0,0,0)',
-      shadowBlur: selectedNames.has(item.name) ? 10 : 0
+  return coloredMapData.map((item) => {
+    const isSelected = selectedNames.has(item.name)
+
+    return {
+      name: item.name,
+      itemStyle: {
+        areaColor: item.color,
+        opacity: isSelected ? 1 : MAP_FILL_OPACITY,
+        borderColor: isSelected ? '#facc15' : 'rgba(0,0,0,0)',
+        borderWidth: isSelected ? 2.5 : 0,
+        shadowColor: isSelected ? 'rgba(250, 204, 21, 0.45)' : 'rgba(0,0,0,0)',
+        shadowBlur: isSelected ? 14 : 0
+      }
     }
-  }))
+  })
 }
 
 const buildTooltipMapData = (coloredMapData) => (
@@ -345,17 +365,27 @@ const buildTooltipMapData = (coloredMapData) => (
     tierLabel: item.tierLabel,
     color: item.color,
     itemStyle: {
-      areaColor: 'rgba(0,0,0,0)',
+      areaColor: 'rgba(255,255,255,0.01)',
       borderColor: 'rgba(0,0,0,0)',
-      opacity: 0
+      opacity: 1
     }
   }))
+)
+
+const escapeHtml = (value) => (
+  String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 )
 
 export function useMapChart({
   chartRef,
   geoJson,
   cityGeoJson,
+  provinceGeoJson,
   mapLegendItems,
   mapSeriesData,
   selectedMeasure,
@@ -367,27 +397,140 @@ export function useMapChart({
   let mapChart = null
   let hoveredCountyName = ''
   let labelVisibilityFrame = null
+  let mouseMoveFrame = null
+  let pendingMouseMoveEvent = null
+  let roamIdleTimer = null
+  let isMapRoaming = false
+  let areCountyLabelsVisible = null
+  let manualTooltipEl = null
+  let projectedCountyGeometries = null
+  let interactionOverlayEl = null
 
-  const getCountyDataIndex = (name) => (
-    mapSeriesData.value.findIndex((item) => item.name === name)
+  const getCountyTooltipData = (name) => (
+    buildColoredMapData(mapSeriesData.value, mapLegendItems.value)
+      .find((item) => item.name === name)
   )
 
-  const buildCountyTooltip = (params) => {
-    const rawValue = params?.data?.value
+  const buildCountyTooltip = (name, data = getCountyTooltipData(name)) => {
+    const rawValue = data?.value
     const measureLine = Number.isFinite(Number(rawValue))
-      ? `${selectedMapTimeframe.value}年${selectedMeasure.value.label}: ${formatNumber(rawValue)} ${selectedMeasure.value.unit}`
+      ? `${selectedMapTimeframe.value}年${escapeHtml(selectedMeasure.value.label)}: ${formatNumber(rawValue)} ${escapeHtml(selectedMeasure.value.unit)}`
       : `${selectedMapTimeframe.value}年${selectedMeasure.value.label}: 暂无统计数据`
-    const tierLine = params?.data?.tierLabel
-      ? `分层: ${params.data.tierLabel}`
-      : '分层: 暂无数据'
 
     return [
-      `<strong>${params.name}</strong>`,
-      '地点介绍: 江西省区县级行政区',
-      measureLine,
-      tierLine,
-      '点击地图可加入或移出趋势对比'
+      `<strong>${escapeHtml(name)}</strong>`,
+      measureLine
     ].join('<br>')
+  }
+
+  const ensureManualTooltip = () => {
+    if (manualTooltipEl || !chartRef.value) {
+      return manualTooltipEl
+    }
+
+    manualTooltipEl = document.createElement('div')
+    manualTooltipEl.style.position = 'absolute'
+    manualTooltipEl.style.zIndex = '30'
+    manualTooltipEl.style.maxWidth = '280px'
+    manualTooltipEl.style.padding = '9px 11px'
+    manualTooltipEl.style.borderRadius = '4px'
+    manualTooltipEl.style.background = 'rgba(255, 255, 255, 0.96)'
+    manualTooltipEl.style.color = '#111827'
+    manualTooltipEl.style.fontSize = '12px'
+    manualTooltipEl.style.lineHeight = '1.55'
+    manualTooltipEl.style.pointerEvents = 'none'
+    manualTooltipEl.style.border = '1px solid rgba(209, 213, 219, 0.95)'
+    manualTooltipEl.style.boxShadow = '0 6px 18px rgba(15, 23, 42, 0.18)'
+    manualTooltipEl.style.display = 'none'
+
+    chartRef.value.appendChild(manualTooltipEl)
+    return manualTooltipEl
+  }
+
+  const getEventPixel = (event) => {
+    const nativeEvent = event?.event || event
+    const offsetX = Number(event?.offsetX ?? nativeEvent?.offsetX)
+    const offsetY = Number(event?.offsetY ?? nativeEvent?.offsetY)
+
+    if (Number.isFinite(offsetX) && Number.isFinite(offsetY)) {
+      return [offsetX, offsetY]
+    }
+
+    if (!chartRef.value || !nativeEvent) {
+      return null
+    }
+
+    const rect = chartRef.value.getBoundingClientRect()
+    const clientX = Number(nativeEvent.clientX)
+    const clientY = Number(nativeEvent.clientY)
+
+    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
+      return null
+    }
+
+    return [clientX - rect.left, clientY - rect.top]
+  }
+
+  const positionManualTooltip = (event) => {
+    if (!manualTooltipEl || !chartRef.value) {
+      return
+    }
+
+    const pixel = getEventPixel(event)
+    if (!pixel) {
+      return
+    }
+
+    const chartWidth = chartRef.value.clientWidth
+    const chartHeight = chartRef.value.clientHeight
+    const tooltipWidth = manualTooltipEl.offsetWidth || 260
+    const tooltipHeight = manualTooltipEl.offsetHeight || 120
+    const left = Math.min(pixel[0] + 14, Math.max(8, chartWidth - tooltipWidth - 8))
+    const top = Math.min(pixel[1] + 14, Math.max(8, chartHeight - tooltipHeight - 8))
+
+    manualTooltipEl.style.left = `${left}px`
+    manualTooltipEl.style.top = `${top}px`
+  }
+
+  const showManualTooltip = (name, event) => {
+    const tooltipEl = ensureManualTooltip()
+    if (!tooltipEl) {
+      return
+    }
+
+    tooltipEl.innerHTML = buildCountyTooltip(name)
+    tooltipEl.style.display = 'block'
+    positionManualTooltip(event)
+  }
+
+  const hideManualTooltip = () => {
+    if (manualTooltipEl) {
+      manualTooltipEl.style.display = 'none'
+    }
+  }
+
+  const ensureInteractionOverlay = () => {
+    if (interactionOverlayEl || !chartRef.value) {
+      return interactionOverlayEl
+    }
+
+    interactionOverlayEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    interactionOverlayEl.setAttribute('aria-hidden', 'true')
+    interactionOverlayEl.style.position = 'absolute'
+    interactionOverlayEl.style.inset = '0'
+    interactionOverlayEl.style.zIndex = '25'
+    interactionOverlayEl.style.width = '100%'
+    interactionOverlayEl.style.height = '100%'
+    interactionOverlayEl.style.pointerEvents = 'none'
+    interactionOverlayEl.style.overflow = 'visible'
+    interactionOverlayEl.addEventListener('mouseleave', handleCanvasMouseOut)
+    chartRef.value.appendChild(interactionOverlayEl)
+
+    return interactionOverlayEl
+  }
+
+  const invalidateProjectedCountyGeometries = () => {
+    projectedCountyGeometries = null
   }
 
   const syncMapSelection = () => {
@@ -399,25 +542,22 @@ export function useMapChart({
     mapChart.setOption({
       geo: {
         regions: buildGeoRegions(coloredMapData, selectedCountyNames.value)
-      }
-    })
+      },
+      series: [
+        {
+          id: 'selected-county-outline',
+          data: buildSelectedCountyBoundaryLines(geoJson.value, selectedCountyNames.value)
+        }
+      ]
+    }, false, true)
   }
 
-  const showCountyTip = (name) => {
+  const showCountyTip = (name, event) => {
     if (!mapChart || !name) {
       return
     }
 
-    const dataIndex = getCountyDataIndex(name)
-    if (dataIndex < 0) {
-      return
-    }
-
-    mapChart.dispatchAction({
-      type: 'showTip',
-      seriesIndex: 0,
-      dataIndex
-    })
+    showManualTooltip(name, event)
   }
 
   const setMapCursor = (cursor = 'default') => {
@@ -431,30 +571,195 @@ export function useMapChart({
 
     hoveredCountyName = ''
     setMapCursor()
-    mapChart.dispatchAction({
-      type: 'hideTip'
-    })
+    hideManualTooltip()
   }
 
-  const handleCountyClick = (countyName) => {
+  const handleCountyClick = (countyName, event) => {
     if (!countyName || !countyNames.value.includes(countyName)) {
       return
     }
 
     onToggleCounty(countyName)
-    showCountyTip(countyName)
+    showCountyTip(countyName, event)
   }
 
-  const findCountyNameByCoord = (coord) => {
-    if (!geoJson.value || !isLngLat(coord)) {
+  const findFeatureNameByCoord = (coord, sourceGeoJson) => {
+    if (!sourceGeoJson || !isLngLat(coord)) {
       return null
     }
 
-    const feature = (geoJson.value.features || []).find((item) => (
+    const feature = (sourceGeoJson.features || []).find((item) => (
       isPointInPolygonGeometry(coord, item.geometry)
     ))
 
     return feature?.properties?.name || null
+  }
+
+  const findCountyNameByCoord = (coord) => (
+    findFeatureNameByCoord(coord, geoJson.value)
+  )
+
+  const getGeometryPolygons = (geometry) => {
+    if (!geometry?.coordinates) {
+      return []
+    }
+
+    if (geometry.type === 'Polygon') {
+      return [geometry.coordinates]
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+      return geometry.coordinates
+    }
+
+    return []
+  }
+
+  const projectPointToPixel = (point) => {
+    if (!mapChart || !isLngLat(point)) {
+      return null
+    }
+
+    const pixel = mapChart.convertToPixel({ geoIndex: 0 }, [
+      Number(point[0]),
+      Number(point[1])
+    ])
+
+    if (!Array.isArray(pixel) || pixel.length < 2) {
+      return null
+    }
+
+    const x = Number(pixel[0])
+    const y = Number(pixel[1])
+    return Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null
+  }
+
+  const getProjectedCountyGeometries = () => {
+    if (projectedCountyGeometries) {
+      return projectedCountyGeometries
+    }
+
+    if (!mapChart || !geoJson.value) {
+      return []
+    }
+
+    const nextGeometries = (geoJson.value.features || [])
+      .map((feature) => {
+        const name = feature?.properties?.name
+        const polygons = getGeometryPolygons(feature.geometry)
+          .map((polygon) => (
+            polygon
+              .map((ring) => (
+                (ring || [])
+                  .map(projectPointToPixel)
+                  .filter(Boolean)
+              ))
+              .filter((ring) => ring.length >= 3)
+          ))
+          .filter((polygon) => polygon.length)
+
+        return name && polygons.length ? { name, polygons } : null
+      })
+      .filter(Boolean)
+
+    if (!nextGeometries.length) {
+      return []
+    }
+
+    projectedCountyGeometries = nextGeometries
+    return projectedCountyGeometries
+  }
+
+  const buildSvgPathData = (polygons) => (
+    polygons
+      .flatMap((polygon) => (
+        polygon.map((ring) => (
+          ring.map(([x, y], index) => (
+            `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`
+          )).join(' ') + ' Z'
+        ))
+      ))
+      .join(' ')
+  )
+
+  const renderInteractionOverlay = () => {
+    const overlayEl = ensureInteractionOverlay()
+    if (!overlayEl || !chartRef.value) {
+      return
+    }
+
+    overlayEl.setAttribute('viewBox', `0 0 ${chartRef.value.clientWidth} ${chartRef.value.clientHeight}`)
+    overlayEl.replaceChildren()
+
+    getProjectedCountyGeometries().forEach(({ name, polygons }) => {
+      const pathData = buildSvgPathData(polygons)
+      if (!pathData) {
+        return
+      }
+
+      const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      pathEl.setAttribute('d', pathData)
+      pathEl.setAttribute('fill', 'rgba(255,255,255,0.01)')
+      pathEl.setAttribute('stroke', 'none')
+      pathEl.style.pointerEvents = 'none'
+
+      overlayEl.appendChild(pathEl)
+    })
+  }
+
+  const findCountyNameByProjectedPixel = (pixel) => {
+    if (!Array.isArray(pixel) || pixel.length < 2) {
+      return null
+    }
+
+    const [x, y] = pixel.map(Number)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      return null
+    }
+
+    const point = [x, y]
+    const matchedCounty = getProjectedCountyGeometries().find(({ polygons }) => (
+      polygons.some((polygon) => {
+        const [outerRing, ...holes] = polygon
+        return isPointInRing(point, outerRing)
+          && !holes.some((ring) => isPointInRing(point, ring))
+      })
+    ))
+
+    return matchedCounty?.name || null
+  }
+
+  const getMapCoordByPixel = (pixel) => {
+    if (!mapChart) {
+      return null
+    }
+
+    const finders = [{ geoIndex: 0 }, { seriesIndex: 0 }]
+    for (const finder of finders) {
+      if (!mapChart.containPixel(finder, pixel)) {
+        continue
+      }
+
+      const coord = mapChart.convertFromPixel(finder, pixel)
+      if (isLngLat(coord)) {
+        return coord
+      }
+    }
+
+    return null
+  }
+
+  const findCountyNameByPixel = (pixel) => {
+    const projectedCountyName = findCountyNameByProjectedPixel(pixel)
+    if (projectedCountyName) {
+      return projectedCountyName
+    }
+
+    const coord = getMapCoordByPixel(pixel)
+    return coord
+      ? findCountyNameByCoord(coord)
+      || findCountyNameByCoord(MERCATOR_PROJECTION.unproject(coord))
+      : null
   }
 
   const handleCanvasClick = (event) => {
@@ -462,47 +767,41 @@ export function useMapChart({
       return
     }
 
-    const pixel = [event.offsetX, event.offsetY]
-    if (!mapChart.containPixel({ geoIndex: 0 }, pixel)) {
+    const pixel = getEventPixel(event)
+    if (!pixel) {
       return
     }
 
-    const coord = mapChart.convertFromPixel({ geoIndex: 0 }, pixel)
-    if (!isLngLat(coord)) {
-      return
-    }
-
-    const countyName = findCountyNameByCoord(coord)
+    const countyName = findCountyNameByPixel(pixel)
     if (!countyName) {
       hideCountyTip()
       return
     }
 
-    handleCountyClick(countyName)
+    handleCountyClick(countyName, event)
   }
 
-  const handleCanvasMouseMove = (event) => {
+  const processCanvasMouseMove = (event) => {
     if (!mapChart) {
       return
     }
 
-    const pixel = [event.offsetX, event.offsetY]
-    if (!mapChart.containPixel({ geoIndex: 0 }, pixel)) {
+    if (isMapRoaming) {
       if (hoveredCountyName) {
         hideCountyTip()
       }
       return
     }
 
-    const coord = mapChart.convertFromPixel({ geoIndex: 0 }, pixel)
-    if (!isLngLat(coord)) {
+    const pixel = getEventPixel(event)
+    if (!pixel) {
       if (hoveredCountyName) {
         hideCountyTip()
       }
       return
     }
 
-    const countyName = findCountyNameByCoord(coord)
+    const countyName = findCountyNameByPixel(pixel)
     if (!countyName) {
       if (hoveredCountyName) {
         hideCountyTip()
@@ -511,12 +810,31 @@ export function useMapChart({
     }
 
     if (hoveredCountyName === countyName) {
+      positionManualTooltip(event)
       return
     }
 
     hoveredCountyName = countyName
     setMapCursor('pointer')
-    showCountyTip(countyName)
+    showCountyTip(countyName, event)
+  }
+
+  const handleCanvasMouseMove = (event) => {
+    pendingMouseMoveEvent = event
+
+    if (mouseMoveFrame) {
+      return
+    }
+
+    mouseMoveFrame = requestAnimationFrame(() => {
+      const nextEvent = pendingMouseMoveEvent
+      pendingMouseMoveEvent = null
+      mouseMoveFrame = null
+
+      if (nextEvent) {
+        processCanvasMouseMove(nextEvent)
+      }
+    })
   }
 
   const handleCanvasMouseOut = () => {
@@ -537,6 +855,11 @@ export function useMapChart({
     }
 
     const showCountyLabels = zoom >= COUNTY_LABEL_MIN_ZOOM
+    if (areCountyLabelsVisible === showCountyLabels) {
+      return
+    }
+
+    areCountyLabelsVisible = showCountyLabels
 
     mapChart.setOption({
       series: [
@@ -554,10 +877,20 @@ export function useMapChart({
           }
         }
       ]
-    })
+    }, false, true)
   }
 
   const scheduleLabelVisibilityUpdate = () => {
+    isMapRoaming = true
+    invalidateProjectedCountyGeometries()
+    if (roamIdleTimer) {
+      window.clearTimeout(roamIdleTimer)
+    }
+    roamIdleTimer = window.setTimeout(() => {
+      isMapRoaming = false
+      roamIdleTimer = null
+    }, ROAM_IDLE_DELAY)
+
     if (labelVisibilityFrame) {
       return
     }
@@ -569,23 +902,29 @@ export function useMapChart({
   }
 
   const updateMapChart = () => {
-    if (!mapChart || !geoJson.value || !cityGeoJson.value) {
-      console.log('updateMapChart skipped:', { mapChart: !!mapChart, geoJson: !!geoJson.value, cityGeoJson: !!cityGeoJson.value })
+    if (!mapChart || !geoJson.value || !cityGeoJson.value || !provinceGeoJson.value) {
+      console.log('updateMapChart skipped:', {
+        mapChart: !!mapChart,
+        geoJson: !!geoJson.value,
+        cityGeoJson: !!cityGeoJson.value,
+        provinceGeoJson: !!provinceGeoJson.value
+      })
       return
     }
 
     const countyBoundaryLines = buildCountyBoundaryLines(geoJson.value)
     const cityBoundaryLines = buildCityBoundaryLines(geoJson.value)
+    const provinceBoundaryLines = buildCountyBoundaryLines(provinceGeoJson.value)
     const cityLabelData = buildLabelData(cityGeoJson.value)
     const countyLabelData = buildLabelData(geoJson.value)
     const coloredMapData = buildColoredMapData(mapSeriesData.value, mapLegendItems.value)
     const tooltipMapData = buildTooltipMapData(coloredMapData)
+    const selectedCountyBoundaryLines = buildSelectedCountyBoundaryLines(
+      geoJson.value,
+      selectedCountyNames.value
+    )
 
-    console.log('countyBoundaryLines count:', countyBoundaryLines.length)
-    console.log('cityBoundaryLines count:', cityBoundaryLines.length)
-    console.log('cityLabelData:', cityLabelData)
-    console.log('coloredMapData sample:', coloredMapData.slice(0, 3))
-
+    areCountyLabelsVisible = null
     mapChart.setOption({
       animation: false,
       animationDuration: 0,
@@ -596,8 +935,11 @@ export function useMapChart({
         alwaysShowContent: false,
         confine: true,
         appendToBody: true,
+        enterable: false,
+        showDelay: 0,
+        hideDelay: 80,
         textStyle: {
-          fontSize: 16
+          fontSize: 12
         },
         formatter: (params) => {
           if (['city-label-overlay', 'county-label-overlay'].includes(params?.seriesName)) {
@@ -605,7 +947,7 @@ export function useMapChart({
           }
 
           if (params?.name && countyNames.value.includes(params.name)) {
-            return buildCountyTooltip(params)
+            return buildCountyTooltip(params.name, params.data)
           }
 
           return params?.name ? `${params.name}<br>暂无统计数据` : ''
@@ -641,19 +983,19 @@ export function useMapChart({
           geoIndex: 0,
           z: 1,
           animation: false,
-          silent: false,
+          silent: true,
           itemStyle: {
-            areaColor: 'rgba(0,0,0,0)',
+            areaColor: 'rgba(255,255,255,0.01)',
             borderColor: 'rgba(0,0,0,0)',
-            opacity: 0,
+            opacity: 1,
             borderWidth: 0
           },
           emphasis: {
             label: { show: false },
             itemStyle: {
-              areaColor: 'rgba(0,0,0,0)',
+              areaColor: 'rgba(255,255,255,0.01)',
               borderColor: 'rgba(0,0,0,0)',
-              opacity: 0,
+              opacity: 1,
               borderWidth: 0,
               shadowBlur: 0
             }
@@ -704,7 +1046,7 @@ export function useMapChart({
           label: {
             show: true,
             color: '#1f2937',
-            fontSize: 17,
+            fontSize: 13,
             fontWeight: 600,
             fontStyle: 'italic',
             padding: [4, 8],
@@ -735,7 +1077,7 @@ export function useMapChart({
           label: {
             show: false,
             color: '#111827',
-            fontSize: 13,
+            fontSize: 10,
             fontWeight: 600,
             padding: [2, 5],
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -750,16 +1092,50 @@ export function useMapChart({
             disabled: true
           },
           data: countyLabelData
+        },
+        {
+          id: 'selected-county-outline',
+          name: 'selected-county-outline',
+          type: 'lines',
+          coordinateSystem: 'geo',
+          polyline: true,
+          silent: true,
+          tooltip: { show: false },
+          z: 35,
+          lineStyle: {
+            color: '#facc15',
+            width: 3,
+            opacity: 1,
+            shadowColor: 'rgba(250, 204, 21, 0.55)',
+            shadowBlur: 8
+          },
+          data: selectedCountyBoundaryLines
+        },
+        {
+          name: 'jiangxi-province-outline',
+          type: 'lines',
+          coordinateSystem: 'geo',
+          polyline: true,
+          silent: true,
+          tooltip: { show: false },
+          z: 55,
+          lineStyle: {
+            color: '#111827',
+            width: 2.4,
+            opacity: 0.95
+          },
+          data: provinceBoundaryLines
         }
       ]
     }, true)
 
+    invalidateProjectedCountyGeometries()
     syncMapSelection()
     applyLabelVisibility(INITIAL_MAP_ZOOM)
   }
 
   const initMapChart = () => {
-    if (!chartRef.value || !geoJson.value || !cityGeoJson.value) {
+    if (!chartRef.value || !geoJson.value || !cityGeoJson.value || !provinceGeoJson.value) {
       return
     }
 
@@ -767,9 +1143,10 @@ export function useMapChart({
       echarts.registerMap(MAP_NAME, geoJson.value)
       mapChart = echarts.init(chartRef.value)
       mapChart.on('georoam', scheduleLabelVisibilityUpdate)
-      mapChart.getZr().on('click', handleCanvasClick)
-      mapChart.getZr().on('mousemove', handleCanvasMouseMove)
       mapChart.getZr().on('globalout', handleCanvasMouseOut)
+      chartRef.value.addEventListener('click', handleCanvasClick, MAP_DOM_EVENT_OPTIONS)
+      chartRef.value.addEventListener('mousemove', handleCanvasMouseMove, MAP_DOM_EVENT_OPTIONS)
+      chartRef.value.addEventListener('mouseleave', handleCanvasMouseOut, MAP_DOM_EVENT_OPTIONS)
       requestAnimationFrame(() => {
         mapChart?.resize()
         updateMapChart()
@@ -780,11 +1157,12 @@ export function useMapChart({
   }
 
   const handleResize = () => {
+    invalidateProjectedCountyGeometries()
     mapChart?.resize()
   }
 
   const resetMapView = () => {
-    if (!mapChart || !geoJson.value || !cityGeoJson.value) {
+    if (!mapChart || !geoJson.value || !cityGeoJson.value || !provinceGeoJson.value) {
       return
     }
 
@@ -797,7 +1175,7 @@ export function useMapChart({
   }
 
   watch(
-    [geoJson, cityGeoJson, mapLegendItems, mapSeriesData, selectedMeasure],
+    [geoJson, cityGeoJson, provinceGeoJson, mapLegendItems, mapSeriesData, selectedMeasure],
     () => {
       initMapChart()
       updateMapChart()
@@ -814,13 +1192,25 @@ export function useMapChart({
 
   onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
-    mapChart?.getZr().off('click', handleCanvasClick)
-    mapChart?.getZr().off('mousemove', handleCanvasMouseMove)
     mapChart?.getZr().off('globalout', handleCanvasMouseOut)
+    chartRef.value?.removeEventListener('click', handleCanvasClick, MAP_DOM_EVENT_OPTIONS)
+    chartRef.value?.removeEventListener('mousemove', handleCanvasMouseMove, MAP_DOM_EVENT_OPTIONS)
+    chartRef.value?.removeEventListener('mouseleave', handleCanvasMouseOut, MAP_DOM_EVENT_OPTIONS)
     mapChart?.off('georoam', scheduleLabelVisibilityUpdate)
     if (labelVisibilityFrame) {
       cancelAnimationFrame(labelVisibilityFrame)
     }
+    if (mouseMoveFrame) {
+      cancelAnimationFrame(mouseMoveFrame)
+    }
+    if (roamIdleTimer) {
+      window.clearTimeout(roamIdleTimer)
+    }
+    interactionOverlayEl?.removeEventListener('mouseleave', handleCanvasMouseOut)
+    interactionOverlayEl?.remove()
+    interactionOverlayEl = null
+    manualTooltipEl?.remove()
+    manualTooltipEl = null
     mapChart?.dispose()
   })
 

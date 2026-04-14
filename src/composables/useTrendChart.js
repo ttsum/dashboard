@@ -26,16 +26,17 @@ export function useTrendChart({
         trigger: 'axis',
         axisPointer: { type: 'cross' },
         textStyle: {
-          fontSize: 16
+          fontSize: 13
         },
         valueFormatter: (value) => (
           value == null ? '暂无统计数据' : `${formatNumber(value)} ${selectedMeasure.value.unit}`
         )
       },
       grid: {
+        top: 24,
         left: TREND_LAYOUT.gridLeft,
         right: TREND_LAYOUT.legendPanelWidth,
-        bottom: 36,
+        bottom: 34,
         containLabel: true
       },
       xAxis: {
@@ -44,7 +45,7 @@ export function useTrendChart({
         data: trendYears.value.map((year) => String(year)),
         axisLabel: {
           rotate: 45,
-          fontSize: 14,
+          fontSize: 11,
           hideOverlap: false
         }
       },
@@ -54,10 +55,10 @@ export function useTrendChart({
         nameLocation: 'end',
         nameGap: 24,
         nameTextStyle: {
-          fontSize: 15
+          fontSize: 12
         },
         axisLabel: {
-          fontSize: 14
+          fontSize: 11
         }
       },
       legend: {
@@ -66,10 +67,10 @@ export function useTrendChart({
         top: 'center',
         width: TREND_LAYOUT.legendPanelWidth - TREND_LAYOUT.legendLeftPadding - 12,
         align: 'left',
-        itemWidth: 12,
-        itemHeight: 12,
+        itemWidth: 14,
+        itemHeight: 10,
         textStyle: {
-          fontSize: 15,
+          fontSize: 12,
           overflow: 'break',
           width: TREND_LAYOUT.legendPanelWidth - TREND_LAYOUT.legendLeftPadding - 34
         }
@@ -79,6 +80,10 @@ export function useTrendChart({
         type: 'line',
         smooth: true,
         data: item.data,
+        symbolSize: 6,
+        lineStyle: {
+          width: 2.5
+        },
         itemStyle: { color: item.color },
         emphasis: {
           focus: 'series'
@@ -91,7 +96,7 @@ export function useTrendChart({
         style: {
           text: EMPTY_TREND_TEXT,
           fill: '#9CA3AF',
-          fontSize: 18
+          fontSize: 15
         }
       }]
     }, true)

@@ -30,6 +30,7 @@
           <MapPanel
             :geo-json="geoJson"
             :city-geo-json="cityGeoJson"
+            :province-geo-json="provinceGeoJson"
             :is-geo-json-loading="isGeoJsonLoading"
             :geo-json-error="geoJsonError"
             :selected-measure="selectedMeasure"
@@ -66,7 +67,7 @@ import { useDashboardState } from './composables/useDashboardState'
 import { useJiangxiGeoJson } from './composables/useJiangxiGeoJson'
 import { MAP_SOURCE_TEXT } from './constants/dashboard'
 
-const { geoJson, cityGeoJson, isGeoJsonLoading, geoJsonError } = useJiangxiGeoJson()
+const { geoJson, cityGeoJson, provinceGeoJson, isGeoJsonLoading, geoJsonError } = useJiangxiGeoJson()
 
 const {
   mapMeasures,

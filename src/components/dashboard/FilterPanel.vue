@@ -146,13 +146,15 @@ const emit = defineEmits([
 <style scoped>
 .filter-panel {
   --dashboard-font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --option-font-size: 17px;
+  --option-font-size: 13px;
   --option-font-weight: 500;
   --option-line-height: 1.4;
   --option-color: #4b5563;
   --option-label-gap: 10px;
+  --filter-column-height: 152px;
   display: grid;
   grid-template-columns: 1.5fr 1fr 1.7fr 1.1fr;
+  align-items: start;
   gap: 8px;
   padding: 8px;
   font-family: var(--dashboard-font-family);
@@ -161,17 +163,21 @@ const emit = defineEmits([
 }
 
 .filter-column {
+  height: var(--filter-column-height);
   min-height: 0;
   padding: 6px;
+  display: flex;
+  flex-direction: column;
   background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 4px;
+  overflow: hidden;
 }
 
 .filter-header {
   margin-bottom: 6px;
   padding-bottom: 4px;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: #374151;
   border-bottom: 1px solid #e5e7eb;
@@ -186,13 +192,15 @@ const emit = defineEmits([
 
 .clear-btn {
   padding: 0;
-  font-size: 15px;
+  font-size: 12px;
   line-height: 1;
 }
 
 .filter-radio-group {
   display: grid;
   gap: 4px 6px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .measure-radio-group {
@@ -211,7 +219,8 @@ const emit = defineEmits([
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 3px 6px;
-  max-height: 178px;
+  flex: 1;
+  min-height: 0;
   padding-right: 4px;
   overflow-y: auto;
   align-content: start;
@@ -260,22 +269,29 @@ const emit = defineEmits([
 .year-input :deep(.el-input__inner) {
   height: 36px;
   padding: 0 8px;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 36px;
   text-align: center;
 }
 
 .year-separator {
-  font-size: 17px;
+  font-size: 13px;
   color: #6b7280;
 }
 
 .slider-container {
-  padding: 0 20px 10px;
+  flex: 1;
+  min-height: 0;
+  padding: 0 20px 6px;
+}
+
+.slider-container :deep(.el-slider) {
+  --el-slider-height: 4px;
+  --el-slider-button-size: 12px;
 }
 
 .slider-container :deep(.el-slider__marks-text) {
-  font-size: 14px;
+  font-size: 11px;
   color: #9ca3af;
 }
 
@@ -288,6 +304,12 @@ const emit = defineEmits([
 @media (max-width: 768px) {
   .filter-panel {
     grid-template-columns: 1fr;
+    --filter-column-height: auto;
+  }
+
+  .filter-column {
+    height: auto;
+    max-height: 148px;
   }
 }
 </style>

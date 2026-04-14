@@ -21,7 +21,7 @@ export const COLOR_SCHEMES = {
 export const SERIES_COLORS = ['#E91E63', '#9C27B0', '#00BCD4', '#FF9800', '#4CAF50', '#2196F3', '#FF5722', '#3F51B5']
 
 export const TREND_LAYOUT = {
-  gridLeft: 74,
-  legendPanelWidth: 260,
-  legendLeftPadding: 14
+  gridLeft: 58,
+  legendPanelWidth: 210,
+  legendLeftPadding: 10
 }

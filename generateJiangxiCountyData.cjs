@@ -22,7 +22,7 @@ const NAME_ALIASES = {
 
 const METRIC_DEFINITIONS = [
   { key: 'population', source: '年末总人口_万人', label: '人口', unit: '万人' },
-  { key: 'gdp', source: '地区生产总值_万元', label: 'GDP', unit: '万元' },
+  { key: 'gdp', source: '地区生产总值_万元', label: 'GDP', unit: '亿元', scale: 0.0001 },
   { key: 'oilYield', source: '油料产量_吨', label: '油料产量', unit: '吨' },
   { key: 'avgWage', source: '城镇单位在岗职工平均工资_元', label: '平均工资', unit: '元' },
   { key: 'industrialEnterpriseCount', source: '规模以上工业企业数_个', label: '工业企业数量', unit: '个' },
@@ -49,6 +49,15 @@ const parseNumber = (value) => {
   }
 
   return null
+}
+
+const normalizeMetricValue = (value, metric) => {
+  if (!Number.isFinite(Number(value))) {
+    return value
+  }
+
+  const scaledValue = metric.scale ? Number(value) * metric.scale : Number(value)
+  return metric.scale ? Number(scaledValue.toFixed(2)) : scaledValue
 }
 
 const loadJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf-8'))
@@ -145,7 +154,7 @@ const createJiangxiCountyDataset = () => {
       metrics[metric.key] = Object.fromEntries(
         YEARS.map((year) => {
           const row = rowByCountyAndYear.get(`${sourceCountyName}::${year}`)
-          const value = parseNumber(row?.[metric.source])
+          const value = normalizeMetricValue(parseNumber(row?.[metric.source]), metric)
           if (!row) {
             missingCountyNames.add(feature.properties.name)
           }

@@ -1,9 +1,11 @@
 import { markRaw, onMounted, shallowRef } from 'vue'
 import jiangxiCountyGeoJsonUrl from '../assets/geo/jiangxi-counties.raw.geo.json?url'
 import jiangxiCityGeoJsonUrl from '../assets/geo/jiangxi-cities.raw.geo.json?url'
+import jiangxiProvinceGeoJsonUrl from '../assets/geo/jiangxi-province.raw.geo.json?url'
 
 let cachedCountyGeoJson = null
 let cachedCityGeoJson = null
+let cachedProvinceGeoJson = null
 let geoJsonPromise = null
 
 const toCountyGeoJson = (geoJson) => markRaw({
@@ -29,16 +31,25 @@ const toCityGeoJson = (geoJson) => markRaw({
   )
 })
 
+const toProvinceGeoJson = (geoJson) => markRaw({
+  type: 'FeatureCollection',
+  features: (geoJson.features || []).filter(
+    (feature) => feature?.properties?.level === 'province'
+  )
+})
+
 export function useJiangxiGeoJson() {
   const geoJson = shallowRef(cachedCountyGeoJson)
   const cityGeoJson = shallowRef(cachedCityGeoJson)
-  const isGeoJsonLoading = shallowRef(!cachedCountyGeoJson || !cachedCityGeoJson)
+  const provinceGeoJson = shallowRef(cachedProvinceGeoJson)
+  const isGeoJsonLoading = shallowRef(!cachedCountyGeoJson || !cachedCityGeoJson || !cachedProvinceGeoJson)
   const geoJsonError = shallowRef('')
 
   const loadJiangxiGeoJson = async () => {
-    if (cachedCountyGeoJson && cachedCityGeoJson) {
+    if (cachedCountyGeoJson && cachedCityGeoJson && cachedProvinceGeoJson) {
       geoJson.value = cachedCountyGeoJson
       cityGeoJson.value = cachedCityGeoJson
+      provinceGeoJson.value = cachedProvinceGeoJson
       isGeoJsonLoading.value = false
       return
     }
@@ -60,15 +71,23 @@ export function useJiangxiGeoJson() {
               throw new Error(`City HTTP ${response.status}`)
             }
             return response.json()
+          }),
+          fetch(jiangxiProvinceGeoJsonUrl).then((response) => {
+            if (!response.ok) {
+              throw new Error(`Province HTTP ${response.status}`)
+            }
+            return response.json()
           })
         ])
       }
 
-      const [countyRaw, cityRaw] = await geoJsonPromise
+      const [countyRaw, cityRaw, provinceRaw] = await geoJsonPromise
       cachedCountyGeoJson = toCountyGeoJson(countyRaw)
       cachedCityGeoJson = toCityGeoJson(cityRaw)
+      cachedProvinceGeoJson = toProvinceGeoJson(provinceRaw)
       geoJson.value = cachedCountyGeoJson
       cityGeoJson.value = cachedCityGeoJson
+      provinceGeoJson.value = cachedProvinceGeoJson
     } catch (error) {
       geoJsonError.value = `地图数据加载失败: ${error.message}`
       geoJsonPromise = null
@@ -82,6 +101,7 @@ export function useJiangxiGeoJson() {
   return {
     geoJson,
     cityGeoJson,
+    provinceGeoJson,
     isGeoJsonLoading,
     geoJsonError,
     loadJiangxiGeoJson

@@ -67,6 +67,7 @@ import { useMapChart } from '../../composables/useMapChart'
 const props = defineProps({
   geoJson: { type: Object, default: null },
   cityGeoJson: { type: Object, default: null },
+  provinceGeoJson: { type: Object, default: null },
   isGeoJsonLoading: { type: Boolean, required: true },
   geoJsonError: { type: String, default: '' },
   selectedMeasure: { type: Object, required: true },
@@ -86,6 +87,7 @@ const { resetMapView } = useMapChart({
   chartRef: mapChartRef,
   geoJson: toRef(props, 'geoJson'),
   cityGeoJson: toRef(props, 'cityGeoJson'),
+  provinceGeoJson: toRef(props, 'provinceGeoJson'),
   mapLegendItems: toRef(props, 'mapLegendItems'),
   mapSeriesData: toRef(props, 'mapSeriesData'),
   selectedMeasure: toRef(props, 'selectedMeasure'),
@@ -108,7 +110,7 @@ const { resetMapView } = useMapChart({
   flex-shrink: 0;
   margin-bottom: 6px;
   padding-bottom: 4px;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #1f2937;
   border-bottom: 2px solid #002d56;
@@ -126,6 +128,8 @@ const { resetMapView } = useMapChart({
 }
 
 .map-chart {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -142,7 +146,7 @@ const { resetMapView } = useMapChart({
   z-index: 12;
   min-height: 34px;
   padding: 7px 13px;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 600;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
@@ -156,7 +160,7 @@ const { resetMapView } = useMapChart({
   align-items: center;
   justify-content: center;
   padding: 24px;
-  font-size: 18px;
+  font-size: 14px;
   color: #6b7280;
   text-align: center;
   background: rgba(249, 250, 251, 0.85);
@@ -167,9 +171,9 @@ const { resetMapView } = useMapChart({
   left: 8px;
   bottom: 8px;
   z-index: 10;
-  min-width: 190px;
-  max-width: min(360px, calc(100% - 24px));
-  padding: 8px 10px;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  padding: 7px 9px;
   background-color: rgba(255, 255, 255, 0.92);
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
@@ -178,7 +182,7 @@ const { resetMapView } = useMapChart({
 .legend-title {
   margin-bottom: 4px;
   padding-bottom: 3px;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #1f2937;
   border-bottom: 1px solid #e5e7eb;
@@ -209,16 +213,17 @@ const { resetMapView } = useMapChart({
 }
 
 .legend-label {
-  font-size: 15px;
+  flex: 0 0 auto;
+  font-size: 11px;
   color: #374151;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .map-footer {
   flex-shrink: 0;
   margin-top: 6px;
   padding: 5px 8px;
-  font-size: 14px;
+  font-size: 10px;
   font-style: italic;
   line-height: 1.25;
   color: #6b7280;
