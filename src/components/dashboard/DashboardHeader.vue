@@ -8,7 +8,7 @@
       </div>
 
       <div class="header-title">
-        <span class="org-name">湖南省县域统计监测</span>
+        <span class="org-name">江西省县域统计监测</span>
         <span class="main-title">地图仪表盘</span>
       </div>
     </div>

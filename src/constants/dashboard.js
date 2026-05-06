@@ -5,8 +5,8 @@ export { COUNTIES, MEASURE_CONFIG, YEAR_OPTIONS }
 export const DEFAULT_MEASURE_LABEL = MEASURE_CONFIG.population.displayLabel
 export const DEFAULT_SELECTED_COUNTIES = []
 
-export const MAP_NAME = 'hunan-counties'
-export const MAP_SOURCE_TEXT = '数据来源：中国县域统计数据 与湖南省行政区划边界数据'
+export const MAP_NAME = 'jiangxi-counties'
+export const MAP_SOURCE_TEXT = '数据来源：中国县域统计数据 与江西省行政区划边界数据'
 export const EMPTY_TREND_TEXT = '请选择至少一个区县'
 
 export const COLOR_SCHEMES = {

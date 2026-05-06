@@ -5,7 +5,7 @@
     </main>
 
     <main v-else-if="isTaskTransitionVisible" class="task-transition-screen">
-      <button type="button" class="task-transition-button" @click="enterNextTask">点击进入下一题</button>
+      <button type="button" class="task-transition-button" @click="enterNextTask">眼睛看着这里，鼠标点击此处</button>
     </main>
 
     <template v-else>
@@ -84,11 +84,11 @@ import FilterPanel from './components/dashboard/FilterPanel.vue'
 import MapPanel from './components/dashboard/MapPanel.vue'
 import TrendPanel from './components/dashboard/TrendPanel.vue'
 import { useDashboardState } from './composables/useDashboardState'
-import { useHunanGeoJson } from './composables/useHunanGeoJson'
+import { useJiangxiGeoJson } from './composables/useJiangxiGeoJson'
 import { useTaskRoute } from './composables/useTaskRoute'
 import { MAP_SOURCE_TEXT } from './constants/dashboard'
 
-const { geoJson, cityGeoJson, provinceGeoJson, isGeoJsonLoading, geoJsonError } = useHunanGeoJson()
+const { geoJson, cityGeoJson, provinceGeoJson, isGeoJsonLoading, geoJsonError } = useJiangxiGeoJson()
 const { currentTask, currentTaskFlow, currentTaskId, currentTaskNumber, taskCount, goToNextTask } = useTaskRoute()
 const isTaskTransitionVisible = ref(false)
 const isStageEndVisible = ref(false)
@@ -186,13 +186,24 @@ const {
 }
 
 .task-transition-button {
-  padding: 0;
-  font-size: 32px;
+  min-width: 420px;
+  min-height: 88px;
+  padding: 0 36px;
+  font-size: 24px;
   font-weight: 600;
-  color: #111827;
-  background: transparent;
+  color: #fffdf5;
+  background: linear-gradient(135deg, #1d4ed8, #0f766e);
   border: none;
+  border-radius: 16px;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.task-transition-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.2);
 }
 
 .task-transition-text {
@@ -257,6 +268,12 @@ const {
 
   .dashboard-map-area {
     min-height: 520px;
+  }
+
+  .task-transition-button {
+    min-width: 280px;
+    min-height: 52px;
+    font-size: 20px;
   }
 }
 </style>
