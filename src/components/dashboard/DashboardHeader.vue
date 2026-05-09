@@ -37,7 +37,12 @@
           {{ item.label }}
         </button>
       </div>
-      <button type="button" class="next-task-button" @click="emit('next-task')">下一题</button>
+      <button
+        type="button"
+        class="next-task-button"
+        :disabled="!selectedVerdict"
+        @click="handleNextTask"
+      >下一题</button>
     </div>
   </header>
 </template>
@@ -74,6 +79,14 @@ const selectedVerdict = ref('')
 
 const toggleVerdict = (value) => {
   selectedVerdict.value = selectedVerdict.value === value ? '' : value
+}
+
+const handleNextTask = () => {
+  if (!selectedVerdict.value) {
+    return
+  }
+
+  emit('next-task')
 }
 
 watch(
@@ -279,6 +292,21 @@ watch(
   transform: translateY(-1px);
   filter: brightness(1.03);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.next-task-button:disabled {
+  color: rgba(255, 248, 230, 0.62);
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.7), rgba(100, 116, 139, 0.78));
+  border-color: rgba(226, 232, 240, 0.28);
+  box-shadow: none;
+  cursor: not-allowed;
+  filter: grayscale(0.1);
+}
+
+.next-task-button:disabled:hover {
+  transform: none;
+  filter: grayscale(0.1);
+  box-shadow: none;
 }
 
 @media (max-width: 980px) {
