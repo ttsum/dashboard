@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { access, mkdir, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,9 +14,6 @@ const port = Number(process.env.PORT || 8080)
 const maxBodyBytes = Number(process.env.MAX_TRAJECTORY_BODY_BYTES || 5 * 1024 * 1024)
 const trajectoryApiPath = '/api/experiment/trajectory'
 const participantApiPath = '/api/experiment/participant'
-const experimentSessionPath = resolve(
-  process.env.EXPERIMENT_SESSION_FILE || join(projectRoot, 'experiment-session.json')
-)
 const csvHeaders = [
   'payload_session_id',
   'participant_id',
@@ -104,25 +101,6 @@ const toPositiveInteger = (value, fallback = 1) => {
   return Number.isInteger(numeric) && numeric > 0 ? numeric : fallback
 }
 
-const formatParticipantId = (value) => {
-  const rawText = String(value || '')
-  const digitsOnly = rawText.replace(/\D/g, '')
-  const numericId = toPositiveInteger(digitsOnly || rawText, 0)
-  return `P${padNumber(numericId, 6)}`
-}
-
-const formatSessionCode = (value) => `S${padNumber(toPositiveInteger(value, 1), 2)}`
-
-const formatTrialCode = (value) => `T${padNumber(toPositiveInteger(value, 1), 2)}`
-
-const formatTaskCode = (reason) => {
-  const normalizedReason = String(reason || 'manual').toLowerCase()
-  const trimmedPrefix = normalizedReason.startsWith('task_')
-    ? normalizedReason.slice(5)
-    : normalizedReason
-  return safeFilePart(trimmedPrefix || 'manual')
-}
-
 const formatDateCode = (timestamp) => {
   const date = Number.isFinite(Number(timestamp)) ? new Date(Number(timestamp)) : new Date()
   return [
@@ -152,42 +130,6 @@ const createUniqueFilename = async (baseFilename) => {
 
       throw error
     }
-  }
-}
-
-const readExperimentSessionConfig = async () => {
-  let rawConfig = ''
-  try {
-    rawConfig = await readFile(experimentSessionPath, 'utf8')
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      const notFoundError = new Error(`experiment-session.json not found: ${experimentSessionPath}`)
-      notFoundError.statusCode = 400
-      throw notFoundError
-    }
-
-    throw error
-  }
-
-  let parsedConfig
-  try {
-    parsedConfig = JSON.parse(rawConfig)
-  } catch {
-    const parseError = new Error('experiment-session.json is not valid JSON')
-    parseError.statusCode = 400
-    throw parseError
-  }
-
-  const configuredParticipant = parsedConfig?.participant_id
-  if (!String(configuredParticipant || '').trim()) {
-    const configError = new Error('experiment-session.json must include participant_id')
-    configError.statusCode = 400
-    throw configError
-  }
-
-  return {
-    participant_id: formatParticipantId(configuredParticipant),
-    session_no: toPositiveInteger(parsedConfig?.recording_id, 1)
   }
 }
 
@@ -264,29 +206,7 @@ const handleParticipantRequest = async (request, response) => {
     return
   }
 
-  try {
-    const rawBody = await readRequestBody(request)
-    if (rawBody) {
-      JSON.parse(rawBody)
-    }
-    const sessionConfig = await readExperimentSessionConfig()
-
-    sendJson(response, 200, {
-      ok: true,
-      participant_id: sessionConfig.participant_id,
-      session_no: sessionConfig.session_no
-    })
-  } catch (error) {
-    const statusCode = error.statusCode || (error instanceof SyntaxError ? 400 : 500)
-    sendJson(response, statusCode, {
-      ok: false,
-      error: statusCode === 500 ? 'Failed to read experiment session config' : error.message
-    })
-
-    if (statusCode === 500) {
-      console.error('[participant] config read failed', error)
-    }
-  }
+  sendJson(response, 200, { ok: true })
 }
 
 const saveTrajectoryPayload = async (payload) => {
@@ -299,18 +219,30 @@ const saveTrajectoryPayload = async (payload) => {
 
   await mkdir(trajectoryDir, { recursive: true })
 
-  const sessionConfig = await readExperimentSessionConfig()
+  const rawParticipant = String(payload.participant_id || tracks[0]?.participant_id || '').trim()
+  const rawRecordingId = String(
+    payload.recording_id || payload.session_no || tracks[0]?.recording_id || tracks[0]?.session_no || ''
+  ).trim()
+  if (!rawParticipant || !rawRecordingId) {
+    const error = new Error('participant_id and recording_id are required')
+    error.statusCode = 400
+    throw error
+  }
+
+  payload.participant_id = rawParticipant
+  payload.session_no = rawRecordingId
+  payload.recording_id = rawRecordingId
+  for (const track of tracks) {
+    track.participant_id = rawParticipant
+    track.session_no = rawRecordingId
+    track.recording_id = rawRecordingId
+  }
+
   const createdAt = Number(payload.created_at)
-  const participantCode = formatParticipantId(sessionConfig.participant_id)
-  const sessionCode = formatSessionCode(
-    payload.session_no || payload.session_index || tracks[0]?.session_no || sessionConfig.session_no
-  )
-  const taskCode = formatTaskCode(payload.reason || 'manual')
-  const trialCode = formatTrialCode(
-    payload.trial_no || payload.trial_index || tracks[0]?.task_number || 1
-  )
+  const participantCode = safeFilePart(rawParticipant)
+  const recordingCode = safeFilePart(rawRecordingId)
   const dateCode = formatDateCode(createdAt)
-  const baseFilename = `${dateCode}_${participantCode}_${sessionCode}_${taskCode}_${trialCode}.csv`
+  const baseFilename = `${dateCode}_${participantCode}_${recordingCode}.csv`
   const filename = await createUniqueFilename(baseFilename)
   const filepath = join(trajectoryDir, filename)
   const csv = buildTrajectoryCsv(payload, tracks)

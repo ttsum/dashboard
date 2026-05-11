@@ -1,5 +1,4 @@
 const DEFAULT_ENDPOINT = '/api/experiment/trajectory'
-const DEFAULT_PARTICIPANT_ENDPOINT = '/api/experiment/participant'
 const DEFAULT_SAMPLE_INTERVAL = 30
 
 const createSessionId = () => {
@@ -27,48 +26,18 @@ const toFixedRatio = (value, base) => (
 
 export function useMouseTrajectory({
   endpoint = import.meta.env.VITE_TRAJECTORY_ENDPOINT || DEFAULT_ENDPOINT,
-  participantEndpoint = import.meta.env.VITE_PARTICIPANT_ENDPOINT || DEFAULT_PARTICIPANT_ENDPOINT,
   sampleInterval = DEFAULT_SAMPLE_INTERVAL,
   contextProvider = () => ({})
 } = {}) {
   const sessionId = getSessionId()
-  let participantId = ''
-  let sessionNo = 1
   const tracks = []
   let isTracking = false
   let trackingStartTime = 0
   let lastMoveRecordTime = 0
 
-  const ensureParticipantId = async () => {
-    if (participantId) {
-      return participantId
-    }
+  const normalizeInputText = (value) => String(value || '').trim()
 
-    try {
-      const response = await fetch(participantEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ session_id: sessionId }),
-        keepalive: true
-      })
-
-      if (!response.ok) {
-        throw new Error(`Participant id request failed with ${response.status}`)
-      }
-
-      const payload = await response.json()
-      participantId = String(payload.participant_id || '')
-      sessionNo = Number(payload.session_no) || 1
-    } catch (error) {
-      console.warn('[trajectory] participant id request failed', error)
-    }
-
-    return participantId
-  }
-
-  const getBaseRecord = (event, type) => {
+  const getBaseRecord = (event, type, { participantId = '', recordingId = '' } = {}) => {
     const now = Date.now()
     const viewport = getViewportSnapshot()
     const x = event?.clientX ?? null
@@ -77,8 +46,8 @@ export function useMouseTrajectory({
     return {
       ...contextProvider(),
       session_id: sessionId,
-      participant_id: participantId,
-      session_no: sessionNo,
+      participant_id: normalizeInputText(participantId),
+      session_no: normalizeInputText(recordingId),
       page_url: window.location.href,
       type,
       x,
@@ -124,16 +93,20 @@ export function useMouseTrajectory({
       return
     }
 
+    const participantId = normalizeInputText(extra.participant_id)
+    const recordingId = normalizeInputText(extra.recording_id || extra.session_no)
+
     pushRecord({
-      ...getBaseRecord(null, type),
+      ...getBaseRecord(null, type, { participantId, recordingId }),
       ...extra
     })
   }
 
-  const buildPayload = (reason, pendingTracks) => ({
+  const buildPayload = (reason, pendingTracks, { participantId = '', recordingId = '' } = {}) => ({
     session_id: sessionId,
-    participant_id: participantId,
-    session_no: sessionNo,
+    participant_id: normalizeInputText(participantId),
+    session_no: normalizeInputText(recordingId),
+    recording_id: normalizeInputText(recordingId),
     experiment: 'jiangxi_dashboard',
     reason,
     page_url: window.location.href,
@@ -142,13 +115,23 @@ export function useMouseTrajectory({
     tracks: pendingTracks
   })
 
-  const flush = async (reason = 'manual', { beacon = false } = {}) => {
+  const flush = async (reason = 'manual', { beacon = false, participantId = '', recordingId = '' } = {}) => {
     if (!tracks.length) {
       return true
     }
 
-    const pendingTracks = tracks.splice(0, tracks.length)
-    const payload = buildPayload(reason, pendingTracks)
+    const normalizedParticipantId = normalizeInputText(participantId)
+    const normalizedRecordingId = normalizeInputText(recordingId)
+    const pendingTracks = tracks.splice(0, tracks.length).map((track) => ({
+      ...track,
+      participant_id: normalizedParticipantId || normalizeInputText(track.participant_id),
+      session_no: normalizedRecordingId || normalizeInputText(track.session_no),
+      recording_id: normalizedRecordingId || normalizeInputText(track.recording_id)
+    }))
+    const payload = buildPayload(reason, pendingTracks, {
+      participantId: normalizedParticipantId,
+      recordingId: normalizedRecordingId
+    })
 
     if (beacon && navigator.sendBeacon) {
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
@@ -189,7 +172,6 @@ export function useMouseTrajectory({
     isTracking = true
     trackingStartTime = Date.now()
     lastMoveRecordTime = 0
-    void ensureParticipantId()
     recordMarker('tracking_start')
     window.addEventListener('mousemove', recordMove, { passive: true })
     window.addEventListener('mousedown', recordClick, { passive: true })
@@ -208,7 +190,6 @@ export function useMouseTrajectory({
 
   return {
     sessionId,
-    ensureParticipantId,
     startTracking,
     stopTracking,
     recordMarker,

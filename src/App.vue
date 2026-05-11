@@ -78,6 +78,49 @@
         </section>
       </main>
     </template>
+
+    <div v-if="isRecordDialogVisible" class="record-dialog-mask">
+      <form class="record-dialog" @submit.prevent="submitRecordingMeta">
+        <h2 class="record-dialog-title">记录实验信息</h2>
+
+        <label class="record-dialog-label" for="participant-id-input">participant_id</label>
+        <input
+          id="participant-id-input"
+          ref="participantIdInputRef"
+          v-model.trim="recordParticipantId"
+          class="record-dialog-input"
+          type="text"
+          placeholder="例如：P000123 或 123"
+          autocomplete="off"
+        />
+
+        <label class="record-dialog-label" for="recording-id-input">recording_id</label>
+        <input
+          id="recording-id-input"
+          v-model.trim="recordingId"
+          class="record-dialog-input"
+          type="text"
+          placeholder="例如：1、2、3"
+          autocomplete="off"
+        />
+
+        <p v-if="recordDialogError" class="record-dialog-error">{{ recordDialogError }}</p>
+
+        <div class="record-dialog-actions">
+          <button
+            type="button"
+            class="record-dialog-cancel"
+            :disabled="isStageExitInProgress"
+            @click="closeRecordingDialog"
+          >
+            取消
+          </button>
+          <button type="submit" class="record-dialog-submit" :disabled="isStageExitInProgress">
+            {{ isStageExitInProgress ? '保存中...' : '保存并结束' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -99,6 +142,11 @@ const isTaskTransitionVisible = ref(false)
 const isStageEndVisible = ref(false)
 const isStageExitInProgress = ref(false)
 const isProgramEnded = ref(false)
+const isRecordDialogVisible = ref(false)
+const recordParticipantId = ref('')
+const recordingId = ref('')
+const recordDialogError = ref('')
+const participantIdInputRef = ref(null)
 const STAGE_END_ROUTE_KEYS = new Set(['last:1', 'last:6', 'last:11', 'next:5', 'next:10', 'next:15'])
 const TASK_TRANSITION_HASH = '#/transition'
 const STAGE_END_HASH = '#/stage-end'
@@ -139,6 +187,7 @@ const exitStageEndScreen = () => {
   isStageEndVisible.value = false
   isTaskTransitionVisible.value = false
   isProgramEnded.value = true
+  isRecordDialogVisible.value = false
   window.history.replaceState({ screen: 'ended' }, '', `${window.location.pathname}${PROGRAM_ENDED_HASH}`)
 
   try {
@@ -148,21 +197,87 @@ const exitStageEndScreen = () => {
   }
 }
 
+const openRecordingDialog = () => {
+  if (isRecordDialogVisible.value) {
+    return
+  }
+
+  recordDialogError.value = ''
+  isRecordDialogVisible.value = true
+  nextTick(() => {
+    participantIdInputRef.value?.focus?.()
+  })
+}
+
+const closeRecordingDialog = () => {
+  if (isStageExitInProgress.value) {
+    return
+  }
+
+  isRecordDialogVisible.value = false
+  recordDialogError.value = ''
+}
+
+const validateRecordingMeta = () => {
+  const participant = String(recordParticipantId.value || '').trim()
+  const recording = String(recordingId.value || '').trim()
+
+  if (!participant) {
+    recordDialogError.value = 'participant_id 不能为空。'
+    return null
+  }
+
+  if (!/^\d+$/.test(recording) || Number(recording) <= 0) {
+    recordDialogError.value = 'recording_id 必须是正整数。'
+    return null
+  }
+
+  recordDialogError.value = ''
+  return {
+    participantId: participant,
+    recordingId: recording
+  }
+}
+
+const submitRecordingMeta = async () => {
+  if (isStageExitInProgress.value || !isStageEndVisible.value) {
+    return
+  }
+
+  const meta = validateRecordingMeta()
+  if (!meta) {
+    return
+  }
+
+  isStageExitInProgress.value = true
+  try {
+    mouseTrajectory.recordMarker('stage_exit', {
+      participant_id: meta.participantId,
+      recording_id: meta.recordingId,
+      session_no: meta.recordingId
+    })
+    const saved = await mouseTrajectory.flush('stage_exit', {
+      participantId: meta.participantId,
+      recordingId: meta.recordingId
+    })
+    if (!saved) {
+      recordDialogError.value = '保存失败，请检查服务端后重试。'
+      return
+    }
+
+    exitStageEndScreen()
+  } finally {
+    isStageExitInProgress.value = false
+  }
+}
+
 const handleWindowKeydown = async (event) => {
   if (event.code !== 'Escape' || !isStageEndVisible.value || isStageExitInProgress.value) {
     return
   }
 
   event.preventDefault()
-  isStageExitInProgress.value = true
-
-  try {
-    mouseTrajectory.recordMarker('stage_exit')
-    await mouseTrajectory.flush('stage_exit')
-  } finally {
-    exitStageEndScreen()
-    isStageExitInProgress.value = false
-  }
+  openRecordingDialog()
 }
 
 const handleRouteScreensFromHash = () => {
@@ -177,7 +292,6 @@ const handleRouteScreensFromHash = () => {
 }
 
 onMounted(async () => {
-  await mouseTrajectory.ensureParticipantId()
   mouseTrajectory.startTracking()
   mouseTrajectory.recordMarker('task_enter')
   window.addEventListener('keydown', handleWindowKeydown)
@@ -266,6 +380,95 @@ const {
   font-weight: 600;
   color: #111827;
   text-align: center;
+}
+
+.record-dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.42);
+  padding: 20px;
+}
+
+.record-dialog {
+  width: min(460px, 100%);
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.record-dialog-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.record-dialog-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.record-dialog-input {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.record-dialog-input:focus {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 1px;
+}
+
+.record-dialog-error {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #b91c1c;
+}
+
+.record-dialog-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.record-dialog-cancel,
+.record-dialog-submit {
+  min-width: 102px;
+  height: 38px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.record-dialog-cancel {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.record-dialog-submit {
+  color: #ffffff;
+  background: #1d4ed8;
+}
+
+.record-dialog-cancel:disabled,
+.record-dialog-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .dashboard-layout {
