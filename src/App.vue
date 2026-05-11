@@ -1,11 +1,15 @@
-<template>
+﻿<template>
   <div class="dashboard">
-    <main v-if="isStageEndVisible" class="task-transition-screen">
-      <div class="task-transition-text">此阶段任务结束，请按ESC退出。</div>
+    <main v-if="isProgramEnded" class="task-transition-screen">
+      <div class="task-transition-text">实验已结束，请关闭当前页面。</div>
+    </main>
+
+    <main v-else-if="isStageEndVisible" class="task-transition-screen">
+      <div class="task-transition-text">此阶段任务结束，请按 ESC 退出。</div>
     </main>
 
     <main v-else-if="isTaskTransitionVisible" class="task-transition-screen">
-      <button type="button" class="task-transition-button" @click="enterNextTask">眼睛看着这里，鼠标点击此处</button>
+      <button type="button" class="task-transition-button" @click="enterNextTask">请注视这里，然后点击鼠标进入下一题</button>
     </main>
 
     <template v-else>
@@ -78,13 +82,14 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import DashboardHeader from './components/dashboard/DashboardHeader.vue'
 import FilterPanel from './components/dashboard/FilterPanel.vue'
 import MapPanel from './components/dashboard/MapPanel.vue'
 import TrendPanel from './components/dashboard/TrendPanel.vue'
 import { useDashboardState } from './composables/useDashboardState'
 import { useJiangxiGeoJson } from './composables/useJiangxiGeoJson'
+import { useMouseTrajectory } from './composables/useMouseTrajectory'
 import { useTaskRoute } from './composables/useTaskRoute'
 import { MAP_SOURCE_TEXT } from './constants/dashboard'
 
@@ -92,50 +97,100 @@ const { geoJson, cityGeoJson, provinceGeoJson, isGeoJsonLoading, geoJsonError } 
 const { currentTask, currentTaskFlow, currentTaskId, currentTaskNumber, taskCount, goToNextTask } = useTaskRoute()
 const isTaskTransitionVisible = ref(false)
 const isStageEndVisible = ref(false)
+const isStageExitInProgress = ref(false)
+const isProgramEnded = ref(false)
 const STAGE_END_ROUTE_KEYS = new Set(['last:1', 'last:6', 'last:11', 'next:5', 'next:10', 'next:15'])
+const TASK_TRANSITION_HASH = '#/transition'
+const STAGE_END_HASH = '#/stage-end'
+const PROGRAM_ENDED_HASH = '#/ended'
+const mouseTrajectory = useMouseTrajectory({
+  contextProvider: () => ({
+    flow: currentTaskFlow.value,
+    task_id: currentTaskId.value,
+    task_number: currentTaskNumber.value,
+    task_content: currentTask.value?.content || ''
+  })
+})
 
 const showTaskTransition = () => {
+  mouseTrajectory.recordMarker('task_leave')
+
   const currentRouteKey = `${currentTaskFlow.value}:${currentTaskId.value}`
   if (STAGE_END_ROUTE_KEYS.has(currentRouteKey)) {
+    mouseTrajectory.recordMarker('stage_end')
     isStageEndVisible.value = true
+    window.history.pushState({ screen: 'stage-end' }, '', `${window.location.pathname}${STAGE_END_HASH}`)
     return
   }
 
   isTaskTransitionVisible.value = true
+  window.history.pushState({ screen: 'transition' }, '', `${window.location.pathname}${TASK_TRANSITION_HASH}`)
 }
 
 const enterNextTask = () => {
   isTaskTransitionVisible.value = false
   goToNextTask()
+  nextTick(() => {
+    mouseTrajectory.recordMarker('task_enter')
+  })
 }
 
 const exitStageEndScreen = () => {
   isStageEndVisible.value = false
+  isTaskTransitionVisible.value = false
+  isProgramEnded.value = true
+  window.history.replaceState({ screen: 'ended' }, '', `${window.location.pathname}${PROGRAM_ENDED_HASH}`)
 
   try {
     window.close()
   } catch {
-    // Ignore browser restrictions and fall back below.
-  }
-
-  if (!window.closed && window.history.length > 1) {
-    window.history.back()
+    // Ignore browser restrictions and keep the ended screen.
   }
 }
 
-const handleWindowKeydown = (event) => {
-  if (event.code === 'Escape' && isStageEndVisible.value) {
-    event.preventDefault()
+const handleWindowKeydown = async (event) => {
+  if (event.code !== 'Escape' || !isStageEndVisible.value || isStageExitInProgress.value) {
+    return
+  }
+
+  event.preventDefault()
+  isStageExitInProgress.value = true
+
+  try {
+    mouseTrajectory.recordMarker('stage_exit')
+    await mouseTrajectory.flush('stage_exit')
+  } finally {
     exitStageEndScreen()
+    isStageExitInProgress.value = false
   }
 }
 
-onMounted(() => {
+const handleRouteScreensFromHash = () => {
+  const hash = window.location.hash || ''
+  const isTransitionHash = hash === TASK_TRANSITION_HASH
+  const isStageEndHash = hash === STAGE_END_HASH
+  const isEndedHash = hash === PROGRAM_ENDED_HASH
+
+  isTaskTransitionVisible.value = isTransitionHash
+  isStageEndVisible.value = isStageEndHash
+  isProgramEnded.value = isEndedHash
+}
+
+onMounted(async () => {
+  await mouseTrajectory.ensureParticipantId()
+  mouseTrajectory.startTracking()
+  mouseTrajectory.recordMarker('task_enter')
   window.addEventListener('keydown', handleWindowKeydown)
+  window.addEventListener('popstate', handleRouteScreensFromHash)
+  window.addEventListener('hashchange', handleRouteScreensFromHash)
+  handleRouteScreensFromHash()
 })
 
 onUnmounted(() => {
+  mouseTrajectory.stopTracking()
   window.removeEventListener('keydown', handleWindowKeydown)
+  window.removeEventListener('popstate', handleRouteScreensFromHash)
+  window.removeEventListener('hashchange', handleRouteScreensFromHash)
 })
 
 const {
@@ -277,3 +332,4 @@ const {
   }
 }
 </style>
+

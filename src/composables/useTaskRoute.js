@@ -20,7 +20,7 @@ const normalizeTaskFlow = (taskFlow) => (
   TASK_FLOW_VALUES.has(String(taskFlow)) ? String(taskFlow) : DEFAULT_TASK_FLOW
 )
 
-const readTaskStateFromUrl = () => {
+const readTaskStateFromHash = () => {
   const hashMatch = window.location.hash.match(/^#\/(?:(next|last)\/)?task\/([^/?#]+)/)
   if (hashMatch) {
     return {
@@ -29,6 +29,10 @@ const readTaskStateFromUrl = () => {
     }
   }
 
+  return null
+}
+
+const readTaskStateFromQuery = () => {
   const params = new URLSearchParams(window.location.search)
   const queryTaskId = params.get('taskId') || params.get('task')
   if (queryTaskId) {
@@ -36,6 +40,20 @@ const readTaskStateFromUrl = () => {
       taskFlow: normalizeTaskFlow(params.get('flow')),
       taskId: normalizeTaskId(queryTaskId)
     }
+  }
+
+  return null
+}
+
+const readTaskStateFromUrl = () => {
+  const hashTaskState = readTaskStateFromHash()
+  if (hashTaskState) {
+    return hashTaskState
+  }
+
+  const queryTaskState = readTaskStateFromQuery()
+  if (queryTaskState) {
+    return queryTaskState
   }
 
   return {
@@ -76,7 +94,11 @@ export function useTaskRoute({ enableKeyboard = false } = {}) {
   const currentTaskUrl = computed(() => buildTaskUrl(currentTaskFlow.value, currentTaskId.value))
 
   const syncTaskStateFromUrl = () => {
-    const nextTaskState = readTaskStateFromUrl()
+    const nextTaskState = readTaskStateFromHash() || readTaskStateFromQuery()
+    if (!nextTaskState) {
+      return
+    }
+
     currentTaskFlow.value = nextTaskState.taskFlow
     currentTaskId.value = nextTaskState.taskId
   }
