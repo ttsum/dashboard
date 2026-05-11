@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: dashboard-experiment-api
+    runtime: node
+    plan: starter
+    rootDir: .
+    buildCommand: npm ci && npm run build
+    startCommand: npm run serve:experiment
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: CORS_ORIGIN
+        sync: false

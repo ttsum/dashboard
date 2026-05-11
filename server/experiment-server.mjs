@@ -14,6 +14,7 @@ const port = Number(process.env.PORT || 8080)
 const maxBodyBytes = Number(process.env.MAX_TRAJECTORY_BODY_BYTES || 5 * 1024 * 1024)
 const trajectoryApiPath = '/api/experiment/trajectory'
 const participantApiPath = '/api/experiment/participant'
+const healthApiPath = '/api/experiment/health'
 const csvHeaders = [
   'payload_session_id',
   'participant_id',
@@ -60,8 +61,41 @@ const mimeTypes = {
   '.webp': 'image/webp'
 }
 
-const sendJson = (response, statusCode, payload) => {
+const allowedCorsOrigins = String(process.env.CORS_ORIGIN || '*')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+const resolveCorsOrigin = (requestOrigin) => {
+  if (!allowedCorsOrigins.length || allowedCorsOrigins.includes('*')) {
+    return '*'
+  }
+
+  if (requestOrigin && allowedCorsOrigins.includes(requestOrigin)) {
+    return requestOrigin
+  }
+
+  return allowedCorsOrigins[0]
+}
+
+const corsHeadersFor = (request) => {
+  const requestOrigin = String(request?.headers?.origin || '').trim()
+  const allowOrigin = resolveCorsOrigin(requestOrigin)
+  const headers = {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400'
+  }
+  if (allowOrigin !== '*') {
+    headers.Vary = 'Origin'
+  }
+  return headers
+}
+
+const sendJson = (request, response, statusCode, payload) => {
   response.writeHead(statusCode, {
+    ...corsHeadersFor(request),
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store'
   })
@@ -197,8 +231,15 @@ const buildTrajectoryCsv = (payload, tracks) => {
 }
 
 const handleParticipantRequest = async (request, response) => {
+  if (request.method === 'OPTIONS') {
+    response.writeHead(204, corsHeadersFor(request))
+    response.end()
+    return
+  }
+
   if (request.method !== 'POST') {
     response.writeHead(405, {
+      ...corsHeadersFor(request),
       Allow: 'POST',
       'Content-Type': 'text/plain; charset=utf-8'
     })
@@ -206,7 +247,7 @@ const handleParticipantRequest = async (request, response) => {
     return
   }
 
-  sendJson(response, 200, { ok: true })
+  sendJson(request, response, 200, { ok: true })
 }
 
 const saveTrajectoryPayload = async (payload) => {
@@ -257,8 +298,15 @@ const saveTrajectoryPayload = async (payload) => {
 }
 
 const handleTrajectoryRequest = async (request, response) => {
+  if (request.method === 'OPTIONS') {
+    response.writeHead(204, corsHeadersFor(request))
+    response.end()
+    return
+  }
+
   if (request.method !== 'POST') {
     response.writeHead(405, {
+      ...corsHeadersFor(request),
       Allow: 'POST',
       'Content-Type': 'text/plain; charset=utf-8'
     })
@@ -270,13 +318,13 @@ const handleTrajectoryRequest = async (request, response) => {
     const rawBody = await readRequestBody(request)
     const payload = JSON.parse(rawBody)
     const result = await saveTrajectoryPayload(payload)
-    sendJson(response, 200, {
+    sendJson(request, response, 200, {
       ok: true,
       ...result
     })
   } catch (error) {
     const statusCode = error.statusCode || (error instanceof SyntaxError ? 400 : 500)
-    sendJson(response, statusCode, {
+    sendJson(request, response, statusCode, {
       ok: false,
       error: statusCode === 500 ? 'Failed to save trajectory data' : error.message
     })
@@ -330,6 +378,11 @@ const serveStaticFile = (request, response) => {
 
 const server = createServer((request, response) => {
   const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`)
+  if (url.pathname === healthApiPath) {
+    sendJson(request, response, 200, { ok: true, service: 'experiment-server' })
+    return
+  }
+
   if (url.pathname === participantApiPath) {
     void handleParticipantRequest(request, response)
     return

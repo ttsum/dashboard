@@ -24,8 +24,16 @@ const toFixedRatio = (value, base) => (
   base > 0 ? Number((value / base).toFixed(4)) : null
 )
 
+const resolveEndpoint = (path, explicitBaseUrl = import.meta.env.VITE_EXPERIMENT_API_BASE_URL || '') => {
+  const baseUrl = String(explicitBaseUrl || '').trim().replace(/\/+$/, '')
+  if (!baseUrl) {
+    return path
+  }
+  return `${baseUrl}${path}`
+}
+
 export function useMouseTrajectory({
-  endpoint = import.meta.env.VITE_TRAJECTORY_ENDPOINT || DEFAULT_ENDPOINT,
+  endpoint = import.meta.env.VITE_TRAJECTORY_ENDPOINT || resolveEndpoint(DEFAULT_ENDPOINT),
   sampleInterval = DEFAULT_SAMPLE_INTERVAL,
   contextProvider = () => ({})
 } = {}) {
