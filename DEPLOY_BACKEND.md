@@ -49,3 +49,22 @@
 当前 CSV 默认写在后端容器内 `trajectories/`。
 - 若平台实例重启可能丢失，需要后续接对象存储或持久卷。
 - 若你需要，我可以继续改成写入 S3 / R2 / Supabase Storage。
+## 查看/下载采集数据接口（免费实例可用）
+
+已提供两个接口：
+
+- 列表：`GET /api/experiment/files`
+- 下载：`GET /api/experiment/files/:filename`
+
+示例（你的服务）：
+- 列表：`https://jiangxidashboard.onrender.com/api/experiment/files`
+- 下载：`https://jiangxidashboard.onrender.com/api/experiment/files/20260511_35_150.csv`
+
+可选安全控制：
+- 配置环境变量：`EXPERIMENT_ADMIN_TOKEN=<你的令牌>`
+- 配置后访问方式（任一）：
+  - Query: `?token=<你的令牌>`
+  - Header: `x-admin-token: <你的令牌>`
+  - Header: `Authorization: Bearer <你的令牌>`
+
+如未配置 `EXPERIMENT_ADMIN_TOKEN`，接口默认公开可访问。

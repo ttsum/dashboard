@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { access, mkdir, writeFile } from 'node:fs/promises'
+import { access, mkdir, readdir, stat, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -15,6 +15,8 @@ const maxBodyBytes = Number(process.env.MAX_TRAJECTORY_BODY_BYTES || 5 * 1024 * 
 const trajectoryApiPath = '/api/experiment/trajectory'
 const participantApiPath = '/api/experiment/participant'
 const healthApiPath = '/api/experiment/health'
+const filesApiPath = '/api/experiment/files'
+const adminToken = String(process.env.EXPERIMENT_ADMIN_TOKEN || '').trim()
 const csvHeaders = [
   'payload_session_id',
   'participant_id',
@@ -100,6 +102,31 @@ const sendJson = (request, response, statusCode, payload) => {
     'Cache-Control': 'no-store'
   })
   response.end(JSON.stringify(payload))
+}
+
+const normalizeToken = (value) => String(value || '').trim()
+
+const isAuthorized = (request, url) => {
+  if (!adminToken) {
+    return true
+  }
+
+  const queryToken = normalizeToken(url.searchParams.get('token'))
+  const headerToken = normalizeToken(request.headers['x-admin-token'])
+  const authHeader = normalizeToken(request.headers.authorization).replace(/^Bearer\s+/i, '')
+  return queryToken === adminToken || headerToken === adminToken || authHeader === adminToken
+}
+
+const requireAuthorization = (request, response, url) => {
+  if (isAuthorized(request, url)) {
+    return true
+  }
+
+  sendJson(request, response, 401, {
+    ok: false,
+    error: 'Unauthorized'
+  })
+  return false
 }
 
 const readRequestBody = (request) => new Promise((resolveBody, rejectBody) => {
@@ -335,6 +362,131 @@ const handleTrajectoryRequest = async (request, response) => {
   }
 }
 
+const handleFilesListRequest = async (request, response, url) => {
+  if (request.method === 'OPTIONS') {
+    response.writeHead(204, corsHeadersFor(request))
+    response.end()
+    return
+  }
+
+  if (request.method !== 'GET') {
+    response.writeHead(405, {
+      ...corsHeadersFor(request),
+      Allow: 'GET, OPTIONS',
+      'Content-Type': 'text/plain; charset=utf-8'
+    })
+    response.end('Method Not Allowed')
+    return
+  }
+
+  if (!requireAuthorization(request, response, url)) {
+    return
+  }
+
+  try {
+    await mkdir(trajectoryDir, { recursive: true })
+    const allNames = await readdir(trajectoryDir)
+    const csvNames = allNames
+      .filter((name) => name.toLowerCase().endsWith('.csv'))
+      .sort((a, b) => b.localeCompare(a))
+
+    const files = []
+    for (const name of csvNames) {
+      const filePath = join(trajectoryDir, name)
+      const info = await stat(filePath)
+      files.push({
+        name,
+        size_bytes: info.size,
+        updated_at: info.mtime.toISOString()
+      })
+    }
+
+    sendJson(request, response, 200, {
+      ok: true,
+      count: files.length,
+      files
+    })
+  } catch (error) {
+    console.error('[files] list failed', error)
+    sendJson(request, response, 500, {
+      ok: false,
+      error: 'Failed to list trajectory files'
+    })
+  }
+}
+
+const handleFileDownloadRequest = async (request, response, url, filename) => {
+  if (request.method === 'OPTIONS') {
+    response.writeHead(204, corsHeadersFor(request))
+    response.end()
+    return
+  }
+
+  if (request.method !== 'GET') {
+    response.writeHead(405, {
+      ...corsHeadersFor(request),
+      Allow: 'GET, OPTIONS',
+      'Content-Type': 'text/plain; charset=utf-8'
+    })
+    response.end('Method Not Allowed')
+    return
+  }
+
+  if (!requireAuthorization(request, response, url)) {
+    return
+  }
+
+  const safeName = String(filename || '').replace(/[^a-zA-Z0-9._-]/g, '')
+  if (!safeName || !safeName.toLowerCase().endsWith('.csv')) {
+    sendJson(request, response, 400, {
+      ok: false,
+      error: 'Invalid filename'
+    })
+    return
+  }
+
+  const filePath = resolve(trajectoryDir, safeName)
+  const isInsideTrajectoryDir = filePath === trajectoryDir
+    || filePath.startsWith(`${trajectoryDir}/`)
+    || filePath.startsWith(`${trajectoryDir}\\`)
+  if (!isInsideTrajectoryDir) {
+    sendJson(request, response, 400, {
+      ok: false,
+      error: 'Invalid filename'
+    })
+    return
+  }
+
+  try {
+    await access(filePath)
+  } catch {
+    sendJson(request, response, 404, {
+      ok: false,
+      error: 'File not found'
+    })
+    return
+  }
+
+  const stream = createReadStream(filePath)
+  stream.on('open', () => {
+    response.writeHead(200, {
+      ...corsHeadersFor(request),
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${safeName}"`,
+      'Cache-Control': 'no-store'
+    })
+    stream.pipe(response)
+  })
+
+  stream.on('error', (error) => {
+    console.error('[files] download failed', error)
+    sendJson(request, response, 500, {
+      ok: false,
+      error: 'Failed to read file'
+    })
+  })
+}
+
 const serveStaticFile = (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
   const decodedPath = decodeURIComponent(url.pathname)
@@ -380,6 +532,17 @@ const server = createServer((request, response) => {
   const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`)
   if (url.pathname === healthApiPath) {
     sendJson(request, response, 200, { ok: true, service: 'experiment-server' })
+    return
+  }
+
+  if (url.pathname === filesApiPath) {
+    void handleFilesListRequest(request, response, url)
+    return
+  }
+
+  if (url.pathname.startsWith(`${filesApiPath}/`)) {
+    const filename = decodeURIComponent(url.pathname.slice(filesApiPath.length + 1))
+    void handleFileDownloadRequest(request, response, url, filename)
     return
   }
 
