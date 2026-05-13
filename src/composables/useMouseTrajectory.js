@@ -93,7 +93,23 @@ export function useMouseTrajectory({
       return
     }
 
-    pushRecord(getBaseRecord(event, 'click'))
+    pushRecord({
+      ...getBaseRecord(event, 'click'),
+      mouse_button: Number.isFinite(event?.button) ? event.button : null
+    })
+  }
+
+  const recordWheel = (event) => {
+    if (!isTracking) {
+      return
+    }
+
+    pushRecord({
+      ...getBaseRecord(event, 'wheel'),
+      delta_x: Number.isFinite(event?.deltaX) ? event.deltaX : null,
+      delta_y: Number.isFinite(event?.deltaY) ? event.deltaY : null,
+      delta_mode: Number.isFinite(event?.deltaMode) ? event.deltaMode : null
+    })
   }
 
   const recordMarker = (type, extra = {}) => {
@@ -183,6 +199,7 @@ export function useMouseTrajectory({
     recordMarker('tracking_start')
     window.addEventListener('mousemove', recordMove, { passive: true })
     window.addEventListener('mousedown', recordClick, { passive: true })
+    window.addEventListener('wheel', recordWheel, { passive: true })
   }
 
   const stopTracking = () => {
@@ -194,6 +211,7 @@ export function useMouseTrajectory({
     isTracking = false
     window.removeEventListener('mousemove', recordMove)
     window.removeEventListener('mousedown', recordClick)
+    window.removeEventListener('wheel', recordWheel)
   }
 
   return {
