@@ -140,7 +140,15 @@ import { ACTIVE_PROVINCE_KEY } from './constants/provinceDashboard'
 
 const geoJsonLoader = ACTIVE_PROVINCE_KEY === 'hunan' ? useHunanGeoJson : useJiangxiGeoJson
 const { geoJson, cityGeoJson, provinceGeoJson, isGeoJsonLoading, geoJsonError } = geoJsonLoader()
-const { currentTask, currentTaskFlow, currentTaskId, currentTaskNumber, taskCount, goToNextTask } = useTaskRoute()
+const {
+  currentTask,
+  currentProvinceKey,
+  currentTaskFlow,
+  currentTaskId,
+  currentTaskNumber,
+  taskCount,
+  goToNextTask
+} = useTaskRoute()
 const isTaskTransitionVisible = ref(false)
 const isStageEndVisible = ref(false)
 const isStageExitInProgress = ref(false)
@@ -151,9 +159,7 @@ const recordingId = ref('')
 const recordDialogError = ref('')
 const participantIdInputRef = ref(null)
 const STAGE_END_ROUTE_KEYS = new Set(['last:1', 'next:15'])
-const TASK_TRANSITION_HASH = '#/transition'
-const STAGE_END_HASH = '#/stage-end'
-const PROGRAM_ENDED_HASH = '#/ended'
+const buildScreenHash = (screen) => `#/${currentProvinceKey.value}/${screen}`
 const mouseTrajectory = useMouseTrajectory({
   contextProvider: () => ({
     flow: currentTaskFlow.value,
@@ -170,12 +176,20 @@ const showTaskTransition = () => {
   if (STAGE_END_ROUTE_KEYS.has(currentRouteKey)) {
     mouseTrajectory.recordMarker('stage_end')
     isStageEndVisible.value = true
-    window.history.pushState({ screen: 'stage-end' }, '', `${window.location.pathname}${STAGE_END_HASH}`)
+    window.history.pushState(
+      { screen: 'stage-end' },
+      '',
+      `${window.location.pathname}${buildScreenHash('stage-end')}`
+    )
     return
   }
 
   isTaskTransitionVisible.value = true
-  window.history.pushState({ screen: 'transition' }, '', `${window.location.pathname}${TASK_TRANSITION_HASH}`)
+  window.history.pushState(
+    { screen: 'transition' },
+    '',
+    `${window.location.pathname}${buildScreenHash('transition')}`
+  )
 }
 
 const enterNextTask = () => {
@@ -191,7 +205,11 @@ const exitStageEndScreen = () => {
   isTaskTransitionVisible.value = false
   isProgramEnded.value = true
   isRecordDialogVisible.value = false
-  window.history.replaceState({ screen: 'ended' }, '', `${window.location.pathname}${PROGRAM_ENDED_HASH}`)
+  window.history.replaceState(
+    { screen: 'ended' },
+    '',
+    `${window.location.pathname}${buildScreenHash('ended')}`
+  )
 
   try {
     window.close()
@@ -285,9 +303,10 @@ const handleWindowKeydown = async (event) => {
 
 const handleRouteScreensFromHash = () => {
   const hash = window.location.hash || ''
-  const isTransitionHash = hash === TASK_TRANSITION_HASH
-  const isStageEndHash = hash === STAGE_END_HASH
-  const isEndedHash = hash === PROGRAM_ENDED_HASH
+  const provincePrefix = `#/${currentProvinceKey.value}/`
+  const isTransitionHash = hash === `${provincePrefix}transition`
+  const isStageEndHash = hash === `${provincePrefix}stage-end`
+  const isEndedHash = hash === `${provincePrefix}ended`
 
   isTaskTransitionVisible.value = isTransitionHash
   isStageEndVisible.value = isStageEndHash

@@ -23,11 +23,27 @@ const getPathSegments = (pathname = '') => (
     .filter(Boolean)
 )
 
+const getHashProvinceKey = (hashValue = '') => {
+  const match = String(hashValue || '').toLowerCase().match(/^#\/(jiangxi|hunan)(?:\/|$)/)
+  return match ? match[1] : ''
+}
+
 export const resolveProvinceKeyFromLocation = (locationLike) => {
+  const hashProvinceKey = getHashProvinceKey(locationLike?.hash)
+  if (hashProvinceKey) {
+    return hashProvinceKey
+  }
+
   const pathname = String(locationLike?.pathname || '')
   const segments = getPathSegments(pathname)
   const firstMatchedKey = segments.find((segment) => PROVINCE_KEYS.includes(segment))
-  return firstMatchedKey || DEFAULT_PROVINCE_KEY
+  if (firstMatchedKey) {
+    return firstMatchedKey
+  }
+
+  const searchParams = new URLSearchParams(String(locationLike?.search || ''))
+  const queryProvinceKey = String(searchParams.get('province') || '').toLowerCase()
+  return PROVINCE_KEYS.includes(queryProvinceKey) ? queryProvinceKey : DEFAULT_PROVINCE_KEY
 }
 
 const runtimeLocation = typeof window === 'undefined' ? null : window.location
@@ -38,4 +54,3 @@ export const DEFAULT_PROVINCE = PROVINCE_META[DEFAULT_PROVINCE_KEY]
 export const getProvinceMetaByKey = (provinceKey) => (
   PROVINCE_META[String(provinceKey || '').toLowerCase()] || DEFAULT_PROVINCE
 )
-

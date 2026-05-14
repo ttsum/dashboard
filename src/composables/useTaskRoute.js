@@ -8,9 +8,21 @@ import {
   getTaskById,
   getTaskIndexById
 } from '../constants/tasks'
+import { ACTIVE_PROVINCE_KEY } from '../constants/provinceDashboard'
 
 const DEFAULT_TASK_FLOW = 'next'
 const TASK_FLOW_VALUES = new Set(['next', 'last'])
+
+const normalizeProvinceKey = (provinceKey) => (
+  ['hunan', 'jiangxi'].includes(String(provinceKey || '').toLowerCase())
+    ? String(provinceKey).toLowerCase()
+    : ACTIVE_PROVINCE_KEY
+)
+
+const readProvinceKeyFromHash = () => {
+  const hashMatch = window.location.hash.match(/^#\/(hunan|jiangxi)(?:\/|$)/)
+  return normalizeProvinceKey(hashMatch?.[1])
+}
 
 const normalizeTaskId = (taskId) => (
   TASKS_BY_ID.has(String(taskId)) ? String(taskId) : DEFAULT_TASK_ID
@@ -21,11 +33,14 @@ const normalizeTaskFlow = (taskFlow) => (
 )
 
 const readTaskStateFromHash = () => {
-  const hashMatch = window.location.hash.match(/^#\/(?:(next|last)\/)?task\/([^/?#]+)/)
+  const hashMatch = window.location.hash.match(
+    /^#\/(?:(hunan|jiangxi)\/)?(?:(next|last)\/)?task\/([^/?#]+)/
+  )
   if (hashMatch) {
     return {
-      taskFlow: normalizeTaskFlow(hashMatch[1]),
-      taskId: normalizeTaskId(decodeURIComponent(hashMatch[2]))
+      provinceKey: normalizeProvinceKey(hashMatch[1]),
+      taskFlow: normalizeTaskFlow(hashMatch[2]),
+      taskId: normalizeTaskId(decodeURIComponent(hashMatch[3]))
     }
   }
 
@@ -37,6 +52,7 @@ const readTaskStateFromQuery = () => {
   const queryTaskId = params.get('taskId') || params.get('task')
   if (queryTaskId) {
     return {
+      provinceKey: normalizeProvinceKey(params.get('province')),
       taskFlow: normalizeTaskFlow(params.get('flow')),
       taskId: normalizeTaskId(queryTaskId)
     }
@@ -57,6 +73,7 @@ const readTaskStateFromUrl = () => {
   }
 
   return {
+    provinceKey: readProvinceKeyFromHash(),
     taskFlow: DEFAULT_TASK_FLOW,
     taskId: DEFAULT_TASK_ID
   }
@@ -64,8 +81,8 @@ const readTaskStateFromUrl = () => {
 
 const getAppRootPath = () => window.location.pathname
 
-const buildTaskUrl = (taskFlow, taskId) => (
-  `${getAppRootPath()}#/${encodeURIComponent(taskFlow)}/task/${encodeURIComponent(taskId)}`
+const buildTaskUrl = (provinceKey, taskFlow, taskId) => (
+  `${getAppRootPath()}#/${encodeURIComponent(provinceKey)}/${encodeURIComponent(taskFlow)}/task/${encodeURIComponent(taskId)}`
 )
 
 const isInteractiveTarget = (target) => (
@@ -85,13 +102,16 @@ const isInteractiveTarget = (target) => (
 
 export function useTaskRoute({ enableKeyboard = false } = {}) {
   const initialTaskState = readTaskStateFromUrl()
+  const currentProvinceKey = ref(initialTaskState.provinceKey)
   const currentTaskFlow = ref(initialTaskState.taskFlow)
   const currentTaskId = ref(initialTaskState.taskId)
   const currentTask = computed(() => getTaskById(currentTaskId.value))
   const currentTaskIndex = computed(() => getTaskIndexById(currentTaskId.value))
   const currentTaskNumber = computed(() => currentTaskIndex.value + 1)
   const taskCount = TASKS.length
-  const currentTaskUrl = computed(() => buildTaskUrl(currentTaskFlow.value, currentTaskId.value))
+  const currentTaskUrl = computed(() => (
+    buildTaskUrl(currentProvinceKey.value, currentTaskFlow.value, currentTaskId.value)
+  ))
 
   const syncTaskStateFromUrl = () => {
     const nextTaskState = readTaskStateFromHash() || readTaskStateFromQuery()
@@ -99,21 +119,46 @@ export function useTaskRoute({ enableKeyboard = false } = {}) {
       return
     }
 
+    // Province-specific datasets/maps are initialized at app bootstrap.
+    // If province segment changes in hash, refresh once to reload the correct dataset bundle.
+    if (nextTaskState.provinceKey !== ACTIVE_PROVINCE_KEY) {
+      window.location.reload()
+      return
+    }
+
+    currentProvinceKey.value = nextTaskState.provinceKey
     currentTaskFlow.value = nextTaskState.taskFlow
     currentTaskId.value = nextTaskState.taskId
   }
 
-  const setTaskId = (taskId, { replace = false, taskFlow = currentTaskFlow.value } = {}) => {
+  const setTaskId = (
+    taskId,
+    {
+      replace = false,
+      taskFlow = currentTaskFlow.value,
+      provinceKey = currentProvinceKey.value
+    } = {}
+  ) => {
+    const nextProvinceKey = normalizeProvinceKey(provinceKey)
     const nextTaskFlow = normalizeTaskFlow(taskFlow)
     const nextTaskId = normalizeTaskId(taskId)
-    const nextUrl = buildTaskUrl(nextTaskFlow, nextTaskId)
+    const nextUrl = buildTaskUrl(nextProvinceKey, nextTaskFlow, nextTaskId)
 
+    currentProvinceKey.value = nextProvinceKey
     currentTaskFlow.value = nextTaskFlow
     currentTaskId.value = nextTaskId
     if (replace) {
-      window.history.replaceState({ taskId: nextTaskId, taskFlow: nextTaskFlow }, '', nextUrl)
+      window.history.replaceState(
+        { provinceKey: nextProvinceKey, taskId: nextTaskId, taskFlow: nextTaskFlow },
+        '',
+        nextUrl
+      )
     } else {
-      window.history.pushState({ taskId: nextTaskId, taskFlow: nextTaskFlow }, '', nextUrl)
+      window.history.pushState(
+        { provinceKey: nextProvinceKey, taskId: nextTaskId, taskFlow: nextTaskFlow },
+        '',
+        nextUrl
+      )
     }
   }
 
@@ -141,7 +186,11 @@ export function useTaskRoute({ enableKeyboard = false } = {}) {
   }
 
   onMounted(() => {
-    setTaskId(currentTaskId.value, { replace: true, taskFlow: currentTaskFlow.value })
+    setTaskId(currentTaskId.value, {
+      replace: true,
+      provinceKey: currentProvinceKey.value,
+      taskFlow: currentTaskFlow.value
+    })
     window.addEventListener('popstate', syncTaskStateFromUrl)
     window.addEventListener('hashchange', syncTaskStateFromUrl)
     if (enableKeyboard) {
@@ -159,6 +208,7 @@ export function useTaskRoute({ enableKeyboard = false } = {}) {
 
   return {
     tasks: TASKS,
+    currentProvinceKey,
     currentTaskFlow,
     currentTaskId,
     currentTask,
