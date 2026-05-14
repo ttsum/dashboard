@@ -1,21 +1,27 @@
 import jiangxiCountyMetrics from './data/jiangxiCountyMetrics.json'
+import hunanCountyMetrics from './data/hunanCountyMetrics.json'
+import { ACTIVE_PROVINCE_KEY } from './constants/provinceDashboard'
 
-export const YEAR_OPTIONS = jiangxiCountyMetrics.years
+const activeCountyMetrics = ACTIVE_PROVINCE_KEY === 'hunan'
+  ? hunanCountyMetrics
+  : jiangxiCountyMetrics
+
+export const YEAR_OPTIONS = activeCountyMetrics.years
 
 const toHundredMillionYuan = (value) => (
   Number.isFinite(Number(value)) ? Number((Number(value) / 10000).toFixed(2)) : value
 )
 
 export const MEASURE_CONFIG = {
-  ...jiangxiCountyMetrics.measures,
+  ...activeCountyMetrics.measures,
   gdp: {
-    ...jiangxiCountyMetrics.measures.gdp,
+    ...activeCountyMetrics.measures.gdp,
     unit: '亿元',
     displayLabel: 'GDP (亿元)'
   }
 }
 
-export const COUNTIES = jiangxiCountyMetrics.counties.map((county) => ({
+export const COUNTIES = activeCountyMetrics.counties.map((county) => ({
   ...county,
   metrics: {
     ...county.metrics,

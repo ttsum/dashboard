@@ -1,7 +1,6 @@
 ﻿列名,中文含义,单位或格式,备注
 payload_session_id,本次上传批次的会话ID,字符串,用于技术上唯一关联同一次实验访问产生的数据
 participant_id,被试编号,字符串,由结束页表单填写并随上传保存
-experiment,实验名称,字符串,当前固定为 jiangxi_dashboard
 reason,本批数据上传原因,字符串,当前主要为 stage_exit；仅在最终结束页（next/task/15 或 last/task/1）填写表单后触发上传
 page_url,采集时页面地址,URL,记录用户当时所在的页面路径和任务路由
 user_agent,浏览器与系统信息,字符串,用于判断浏览器环境
@@ -13,7 +12,7 @@ task_id,题目ID,字符串,对应系统中的题目编号
 task_number,当前题目序号,整数,用户界面上显示的第几题
 task_content,题目文本,字符串,当前题目的完整内容
 track_session_id,轨迹记录所属会话ID,字符串,通常与 payload_session_id 一致
-type,事件类型,字符串,"move/click/wheel/tracking_start/tracking_stop/task_enter/task_leave/stage_end/stage_exit 等；其中 stage_end 仅在 next/task/15 或 last/task/1 点击下一题后出现"
+type,事件类型,字符串,当前仅保留 move/click/wheel 三类鼠标行为事件
 mouse_button,鼠标按键编码,整数,仅 type=click 时有值（0=左键，1=中键，2=右键）
 x,鼠标视口横坐标,像素,相对于浏览器可视区域左上角
 y,鼠标视口纵坐标,像素,相对于浏览器可视区域左上角

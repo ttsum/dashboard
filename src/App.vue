@@ -131,12 +131,15 @@ import FilterPanel from './components/dashboard/FilterPanel.vue'
 import MapPanel from './components/dashboard/MapPanel.vue'
 import TrendPanel from './components/dashboard/TrendPanel.vue'
 import { useDashboardState } from './composables/useDashboardState'
+import { useHunanGeoJson } from './composables/useHunanGeoJson'
 import { useJiangxiGeoJson } from './composables/useJiangxiGeoJson'
 import { useMouseTrajectory } from './composables/useMouseTrajectory'
 import { useTaskRoute } from './composables/useTaskRoute'
 import { MAP_SOURCE_TEXT } from './constants/dashboard'
+import { ACTIVE_PROVINCE_KEY } from './constants/provinceDashboard'
 
-const { geoJson, cityGeoJson, provinceGeoJson, isGeoJsonLoading, geoJsonError } = useJiangxiGeoJson()
+const geoJsonLoader = ACTIVE_PROVINCE_KEY === 'hunan' ? useHunanGeoJson : useJiangxiGeoJson
+const { geoJson, cityGeoJson, provinceGeoJson, isGeoJsonLoading, geoJsonError } = geoJsonLoader()
 const { currentTask, currentTaskFlow, currentTaskId, currentTaskNumber, taskCount, goToNextTask } = useTaskRoute()
 const isTaskTransitionVisible = ref(false)
 const isStageEndVisible = ref(false)

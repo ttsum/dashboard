@@ -20,7 +20,6 @@ const adminToken = String(process.env.EXPERIMENT_ADMIN_TOKEN || '').trim()
 const csvHeaders = [
   'payload_session_id',
   'participant_id',
-  'experiment',
   'reason',
   'page_url',
   'user_agent',
@@ -223,7 +222,6 @@ const buildTrajectoryCsv = (payload, tracks) => {
   const rows = tracks.map((track, index) => ({
     payload_session_id: payload.session_id || '',
     participant_id: payload.participant_id || track.participant_id || '',
-    experiment: payload.experiment || '',
     reason: payload.reason || '',
     page_url: track.page_url || payload.page_url || '',
     user_agent: payload.user_agent || '',

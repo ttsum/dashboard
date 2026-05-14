@@ -1,5 +1,7 @@
 const DEFAULT_ENDPOINT = '/api/experiment/trajectory'
 const DEFAULT_SAMPLE_INTERVAL = 30
+const PASSIVE_CAPTURE_LISTENER_OPTIONS = { passive: true, capture: true }
+const MOUSE_EVENT_TYPES = new Set(['move', 'click', 'wheel'])
 
 const createSessionId = () => {
   if (globalThis.crypto?.randomUUID) {
@@ -71,6 +73,9 @@ export function useMouseTrajectory({
   }
 
   const pushRecord = (record) => {
+    if (!MOUSE_EVENT_TYPES.has(String(record?.type || ''))) {
+      return
+    }
     tracks.push(record)
   }
 
@@ -131,7 +136,6 @@ export function useMouseTrajectory({
     participant_id: normalizeInputText(participantId),
     session_no: normalizeInputText(recordingId),
     recording_id: normalizeInputText(recordingId),
-    experiment: 'jiangxi_dashboard',
     reason,
     page_url: window.location.href,
     user_agent: navigator.userAgent,
@@ -197,9 +201,10 @@ export function useMouseTrajectory({
     trackingStartTime = Date.now()
     lastMoveRecordTime = 0
     recordMarker('tracking_start')
-    window.addEventListener('mousemove', recordMove, { passive: true })
-    window.addEventListener('mousedown', recordClick, { passive: true })
-    window.addEventListener('wheel', recordWheel, { passive: true })
+    window.addEventListener('mousemove', recordMove, PASSIVE_CAPTURE_LISTENER_OPTIONS)
+    window.addEventListener('mousedown', recordClick, PASSIVE_CAPTURE_LISTENER_OPTIONS)
+    // Use capture phase so wheel events are still recorded even if chart libs stop bubbling.
+    window.addEventListener('wheel', recordWheel, PASSIVE_CAPTURE_LISTENER_OPTIONS)
   }
 
   const stopTracking = () => {
@@ -209,9 +214,9 @@ export function useMouseTrajectory({
 
     recordMarker('tracking_stop')
     isTracking = false
-    window.removeEventListener('mousemove', recordMove)
-    window.removeEventListener('mousedown', recordClick)
-    window.removeEventListener('wheel', recordWheel)
+    window.removeEventListener('mousemove', recordMove, PASSIVE_CAPTURE_LISTENER_OPTIONS)
+    window.removeEventListener('mousedown', recordClick, PASSIVE_CAPTURE_LISTENER_OPTIONS)
+    window.removeEventListener('wheel', recordWheel, PASSIVE_CAPTURE_LISTENER_OPTIONS)
   }
 
   return {
