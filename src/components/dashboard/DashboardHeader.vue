@@ -8,7 +8,7 @@
       </div>
 
       <div class="header-title">
-        <span class="org-name">江西省县域统计监测</span>
+        <span class="org-name">{{ monitoringTitle }}</span>
         <span class="main-title">地图仪表盘</span>
       </div>
     </div>
@@ -48,9 +48,10 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElIcon } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
+import { getProvinceMetaByKey, resolveProvinceKeyFromLocation } from '../../constants/provinceDashboard'
 
 const emit = defineEmits(['next-task'])
 
@@ -68,6 +69,10 @@ const props = defineProps({
     required: true
   }
 })
+
+const monitoringTitle = computed(() => (
+  getProvinceMetaByKey(resolveProvinceKeyFromLocation(window.location)).monitoringTitle
+))
 
 const verdictOptions = [
   { label: '正确', value: 'correct' },

@@ -5,12 +5,14 @@ const PROVINCE_META = {
   jiangxi: {
     key: 'jiangxi',
     name: '江西省',
+    monitoringTitle: '江西省县域统计监测',
     mapName: 'jiangxi-counties',
     title: '江西省县域统计看板'
   },
   hunan: {
     key: 'hunan',
     name: '湖南省',
+    monitoringTitle: '湖南省县域统计监测',
     mapName: 'hunan-counties',
     title: '湖南省县域统计看板'
   }
