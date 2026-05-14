@@ -158,7 +158,7 @@ const recordParticipantId = ref('')
 const recordingId = ref('')
 const recordDialogError = ref('')
 const participantIdInputRef = ref(null)
-const STAGE_END_ROUTE_KEYS = new Set(['last:1', 'next:15'])
+const STAGE_END_ROUTE_KEYS = new Set(['last:1', `next:${taskCount}`])
 const buildScreenHash = (screen) => `#/${currentProvinceKey.value}/${screen}`
 const mouseTrajectory = useMouseTrajectory({
   contextProvider: () => ({

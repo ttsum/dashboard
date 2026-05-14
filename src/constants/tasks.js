@@ -28,12 +28,7 @@ const HUNAN_TASKS = [
   { id: '7', content: '常德市桃源县的油料产量在2015-2018年持续下降' },
   { id: '8', content: '2018年岳阳市内的所有区县中，君山区的小学教师人数是最少的' },
   { id: '9', content: '2023年油料产量越高的区县，其工业企业数量也越多' },
-  { id: '10', content: '2019年平均工资最高的地区主要分布在湖南省南部区域' },
-  { id: '11', content: '2018年株洲市炎陵县的油料产量约为2000吨' },
-  { id: '12', content: '永州市零陵区的GDP在2020-2023年持续增长' },
-  { id: '13', content: '2017年郴州市内的所有区县中，宜章县的人口是最多的' },
-  { id: '14', content: '2019年工业企业数量越多的区县，其GDP通常也越高' },
-  { id: '15', content: '2016年小学教师人数最多的地区主要集中在湖南省中部区域' }
+  { id: '10', content: '2019年平均工资最高的地区主要分布在湖南省南部区域' }
 ]
 
 const ACTIVE_TASKS = ACTIVE_PROVINCE_KEY === 'hunan' ? HUNAN_TASKS : JIANGXI_TASKS
@@ -58,4 +53,3 @@ export const getPreviousTask = (taskId) => {
   const currentIndex = getTaskIndexById(taskId)
   return TASKS[(currentIndex - 1 + TASKS.length) % TASKS.length]
 }
-
