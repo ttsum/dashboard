@@ -1,0 +1,35 @@
+﻿列名,中文含义,单位或格式,备注
+payload_session_id,本次上传批次的会话ID,字符串,用于技术上唯一关联同一次实验访问产生的数据
+participant_id,被试编号,字符串,由结束页表单填写并随上传保存
+experiment,实验名称,字符串,当前固定为 jiangxi_dashboard
+reason,本批数据上传原因,字符串,当前主要为 stage_exit；仅在最终结束页（next/task/15 或 last/task/1）填写表单后触发上传
+page_url,采集时页面地址,URL,记录用户当时所在的页面路径和任务路由
+user_agent,浏览器与系统信息,字符串,用于判断浏览器环境
+payload_created_at,本批数据创建时间,毫秒时间戳,前端生成 payload 时的时间
+payload_created_at_iso,本批数据创建时间,ISO 时间字符串,由 payload_created_at 转换得到
+record_index,记录序号,整数,当前 CSV 文件内的第几条轨迹记录，从 0 开始
+flow,任务流程方向,字符串,next/last
+task_id,题目ID,字符串,对应系统中的题目编号
+task_number,当前题目序号,整数,用户界面上显示的第几题
+task_content,题目文本,字符串,当前题目的完整内容
+track_session_id,轨迹记录所属会话ID,字符串,通常与 payload_session_id 一致
+type,事件类型,字符串,"move/click/wheel/tracking_start/tracking_stop/task_enter/task_leave/stage_end/stage_exit 等；其中 stage_end 仅在 next/task/15 或 last/task/1 点击下一题后出现"
+mouse_button,鼠标按键编码,整数,仅 type=click 时有值（0=左键，1=中键，2=右键）
+x,鼠标视口横坐标,像素,相对于浏览器可视区域左上角
+y,鼠标视口纵坐标,像素,相对于浏览器可视区域左上角
+x_ratio,鼠标横向相对位置,0-1 小数,x 除以 win_w
+y_ratio,鼠标纵向相对位置,0-1 小数,y 除以 win_h
+page_x,鼠标页面横坐标,像素,相对于整个页面左上角，包含横向滚动偏移
+page_y,鼠标页面纵坐标,像素,相对于整个页面左上角，包含纵向滚动偏移
+win_w,浏览器视口宽度,像素,采集该事件时 window.innerWidth 的值
+win_h,浏览器视口高度,像素,采集该事件时 window.innerHeight 的值
+screen_w,屏幕宽度,像素,用户设备屏幕宽度
+screen_h,屏幕高度,像素,用户设备屏幕高度
+scroll_x,页面横向滚动距离,像素,采集该事件时 window.scrollX 的值
+scroll_y,页面纵向滚动距离,像素,采集该事件时 window.scrollY 的值
+delta_x,滚轮横向增量,像素或行数,仅 type=wheel 时有值（WheelEvent.deltaX）
+delta_y,滚轮纵向增量,像素或行数,仅 type=wheel 时有值（WheelEvent.deltaY）
+delta_mode,滚轮增量模式,整数,"仅 type=wheel 时有值；0=像素，1=行，2=页"
+t,相对实验时间,毫秒,从本次页面开始记录鼠标轨迹起经过的时间
+timestamp,事件发生时间,毫秒时间戳,该条鼠标或标记事件发生的绝对时间
+timestamp_iso,事件发生时间,ISO 时间字符串,由 timestamp 转换得到
