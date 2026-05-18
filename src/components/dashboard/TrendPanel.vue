@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="chart-section">
     <div class="chart-title">
       {{ selectedMeasureLabel }}趋势图 ({{ startYear }} - {{ endYear }})
@@ -77,7 +77,7 @@ useTrendChart({
   flex-shrink: 0;
   margin-bottom: 6px;
   padding: 8px 8px 4px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale));
   font-weight: 600;
   color: #1f2937;
   background-color: #fff;
@@ -107,7 +107,7 @@ useTrendChart({
 
 .range-label {
   flex: 0 0 auto;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale));
   font-weight: 600;
   color: #374151;
 }
@@ -125,7 +125,7 @@ useTrendChart({
 }
 
 .range-slider :deep(.el-slider__marks-text) {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale));
   color: #9ca3af;
   white-space: nowrap;
 }
@@ -134,7 +134,7 @@ useTrendChart({
   flex-shrink: 0;
   margin-top: 6px;
   padding: 5px 8px;
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale));
   font-style: italic;
   line-height: 1.25;
   color: #6b7280;
@@ -157,3 +157,4 @@ useTrendChart({
   }
 }
 </style>
+

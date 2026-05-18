@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="filter-panel">
     <div class="filter-column measure-filter">
       <div class="filter-header">地图指标</div>
@@ -123,14 +123,15 @@ const filteredChartMeasures = computed(() => {
 <style scoped>
 .filter-panel {
   --dashboard-font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --option-font-size: 13px;
+  --option-font-size: calc(13px * var(--ui-font-scale));
   --option-font-weight: 500;
   --option-line-height: 1.4;
   --option-color: #4b5563;
   --option-label-gap: 10px;
   --filter-height: 260px;
+  --measure-filter-height: 286px;
   display: grid;
-  grid-template-columns: minmax(150px, 0.7fr) minmax(150px, 0.7fr) minmax(0, 1.9fr);
+  grid-template-columns: max-content minmax(150px, 0.65fr) minmax(0, 1.75fr);
   grid-template-areas:
     "measure map-year county";
   align-items: start;
@@ -154,23 +155,23 @@ const filteredChartMeasures = computed(() => {
 
 .measure-filter {
   grid-area: measure;
-  height: var(--filter-height);
+  height: var(--measure-filter-height);
 }
 
 .map-year-filter {
   grid-area: map-year;
-  height: var(--filter-height);
+  height: var(--measure-filter-height);
 }
 
 .county-filter {
   grid-area: county;
-  height: var(--filter-height);
+  height: var(--measure-filter-height);
 }
 
 .filter-header {
   margin-bottom: 6px;
   padding-bottom: 4px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale));
   font-weight: 600;
   color: #374151;
   border-bottom: 1px solid #e5e7eb;
@@ -196,7 +197,7 @@ const filteredChartMeasures = computed(() => {
 
 .clear-btn {
   padding: 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale));
   line-height: 1;
 }
 
@@ -210,10 +211,13 @@ const filteredChartMeasures = computed(() => {
 
 .measure-radio-group {
   grid-template-columns: 1fr;
+  gap: 11px 6px;
+  overflow: visible;
 }
 
 .year-radio-group {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 6px;
 }
 
 .filter-radio {
@@ -295,3 +299,4 @@ const filteredChartMeasures = computed(() => {
   }
 }
 </style>
+

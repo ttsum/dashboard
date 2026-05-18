@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <header class="dashboard-header">
     <div class="header-left">
       <div class="logo-placeholder">
@@ -135,13 +135,13 @@ watch(
 }
 
 .org-name {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale));
   color: rgba(255, 255, 255, 0.78);
   letter-spacing: 0.3px;
 }
 
 .main-title {
-  font-size: 18px;
+  font-size: calc(18px * var(--ui-font-scale));
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -181,7 +181,7 @@ watch(
 .task-label {
   flex-shrink: 0;
   padding: 5px 11px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale));
   font-weight: 700;
   color: #78350f;
   background: #fde68a;
@@ -196,7 +196,7 @@ watch(
 
 .task-text {
   overflow: hidden;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-font-scale));
   font-weight: 700;
   color: #fffdf5;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
@@ -206,7 +206,7 @@ watch(
 
 .task-meta {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale));
   font-weight: 600;
   color: rgba(226, 232, 240, 0.82);
   letter-spacing: 0.02em;
@@ -233,7 +233,7 @@ watch(
 
 .verdict-title {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale));
   font-weight: 700;
   letter-spacing: 0.12em;
   color: rgba(255, 236, 179, 0.92);
@@ -244,7 +244,7 @@ watch(
   min-width: 64px;
   min-height: 36px;
   padding: 0 14px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale));
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
   background: rgba(5, 31, 60, 0.56);
@@ -282,7 +282,7 @@ watch(
   min-width: 92px;
   min-height: 40px;
   padding: 0 16px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale));
   font-weight: 700;
   color: #fff8e6;
   background: linear-gradient(135deg, rgba(255, 214, 102, 0.88), rgba(245, 158, 11, 0.92));
@@ -331,11 +331,11 @@ watch(
   }
 
   .task-text {
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-font-scale));
   }
 
   .task-meta {
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-font-scale));
   }
 
   .header-right {
@@ -348,7 +348,7 @@ watch(
   }
 
   .verdict-title {
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-font-scale));
     letter-spacing: 0.08em;
   }
 
@@ -356,14 +356,14 @@ watch(
     min-width: 56px;
     min-height: 30px;
     padding: 0 8px;
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-font-scale));
   }
 
   .next-task-button {
     min-width: 78px;
     min-height: 34px;
     padding: 0 12px;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-font-scale));
   }
 }
 
@@ -400,3 +400,4 @@ watch(
   }
 }
 </style>
+

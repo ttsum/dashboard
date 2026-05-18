@@ -26,15 +26,17 @@ const labelDataCache = new WeakMap()
 const MAP_FILL_OPACITY = 0.9
 const INITIAL_MAP_ZOOM = 1.1
 const COUNTY_LABEL_MIN_ZOOM = 2.35
+const UI_FONT_SCALE = 1.2
+const scaleFont = (size) => Math.max(9, Math.round(size * UI_FONT_SCALE))
 const CITY_LABEL_STYLE = {
-  fontSize: 13,
+  fontSize: scaleFont(15),
   paddingX: 8,
   paddingY: 4,
   textBorderWidth: 5,
   collisionGap: 4
 }
 const COUNTY_LABEL_STYLE = {
-  fontSize: 10,
+  fontSize: scaleFont(14),
   paddingX: 5,
   paddingY: 2,
   textBorderWidth: 3,
@@ -517,7 +519,7 @@ export function useMapChart({
     manualTooltipEl.style.borderRadius = '4px'
     manualTooltipEl.style.background = 'rgba(255, 255, 255, 0.96)'
     manualTooltipEl.style.color = '#111827'
-    manualTooltipEl.style.fontSize = '12px'
+    manualTooltipEl.style.fontSize = `${scaleFont(12)}px`
     manualTooltipEl.style.lineHeight = '1.55'
     manualTooltipEl.style.pointerEvents = 'none'
     manualTooltipEl.style.border = '1px solid rgba(209, 213, 219, 0.95)'
@@ -1136,7 +1138,7 @@ export function useMapChart({
         showDelay: 0,
         hideDelay: 80,
         textStyle: {
-          fontSize: 12
+          fontSize: scaleFont(12)
         },
         formatter: (params) => {
           if (['city-label-overlay', 'county-label-overlay'].includes(params?.seriesName)) {
@@ -1245,7 +1247,7 @@ export function useMapChart({
             show: true,
             position: 'inside',
             color: '#1f2937',
-            fontSize: 13,
+            fontSize: CITY_LABEL_STYLE.fontSize,
             fontWeight: 600,
             fontStyle: 'italic',
             padding: [4, 8],
@@ -1277,7 +1279,7 @@ export function useMapChart({
             show: false,
             position: 'inside',
             color: '#111827',
-            fontSize: 10,
+            fontSize: COUNTY_LABEL_STYLE.fontSize,
             fontWeight: 600,
             padding: [2, 5],
             backgroundColor: 'rgba(255, 255, 255, 0.9)',

@@ -3,6 +3,9 @@ import { EMPTY_TREND_TEXT, TREND_LAYOUT } from '../constants/dashboard'
 import { echarts } from '../lib/echarts'
 import { formatNumber } from '../utils/format'
 
+const UI_FONT_SCALE = 1.2
+const scaleFont = (size) => Math.max(9, Math.round(size * UI_FONT_SCALE))
+
 export function useTrendChart({
   chartRef,
   selectedMeasure,
@@ -26,7 +29,7 @@ export function useTrendChart({
         trigger: 'axis',
         axisPointer: { type: 'cross' },
         textStyle: {
-          fontSize: 13
+          fontSize: scaleFont(13)
         },
         valueFormatter: (value) => (
           value == null ? '暂无统计数据' : `${formatNumber(value)} ${selectedMeasure.value.unit}`
@@ -45,7 +48,7 @@ export function useTrendChart({
         data: trendYears.value.map((year) => String(year)),
         axisLabel: {
           rotate: 0,
-          fontSize: 11,
+          fontSize: scaleFont(11),
           hideOverlap: false
         }
       },
@@ -55,10 +58,10 @@ export function useTrendChart({
         nameLocation: 'end',
         nameGap: 24,
         nameTextStyle: {
-          fontSize: 12
+          fontSize: scaleFont(12)
         },
         axisLabel: {
-          fontSize: 11
+          fontSize: scaleFont(11)
         }
       },
       legend: {
@@ -70,7 +73,7 @@ export function useTrendChart({
         itemWidth: 14,
         itemHeight: 10,
         textStyle: {
-          fontSize: 12,
+          fontSize: scaleFont(12),
           overflow: 'break',
           width: TREND_LAYOUT.legendPanelWidth - TREND_LAYOUT.legendLeftPadding - 34
         }
@@ -96,7 +99,7 @@ export function useTrendChart({
         style: {
           text: EMPTY_TREND_TEXT,
           fill: '#9CA3AF',
-          fontSize: 15
+          fontSize: scaleFont(15)
         }
       }]
     }, true)

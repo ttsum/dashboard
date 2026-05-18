@@ -1,4 +1,4 @@
-* {
+﻿* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -13,11 +13,12 @@ body,
 }
 
 body {
-  --el-font-size-base: 13px;
-  --el-font-size-small: 12px;
-  --el-font-size-extra-small: 11px;
+  --ui-font-scale: 1.2;
+  --el-font-size-base: calc(13px * var(--ui-font-scale));
+  --el-font-size-small: calc(12px * var(--ui-font-scale));
+  --el-font-size-extra-small: calc(11px * var(--ui-font-scale));
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale));
   line-height: 1.5;
   color: #1f2937;
   background-color: #e5e7eb;
@@ -41,3 +42,4 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+

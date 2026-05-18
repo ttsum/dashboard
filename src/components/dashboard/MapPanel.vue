@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="map-section">
     <div class="map-title">
       {{ selectedMeasureLabel }}分布图 - {{ selectedMapTimeframe }}年
@@ -109,7 +109,7 @@ const { resetMapView } = useMapChart({
   flex-shrink: 0;
   margin-bottom: 6px;
   padding-bottom: 4px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale));
   font-weight: 600;
   color: #1f2937;
   border-bottom: 2px solid #002d56;
@@ -145,7 +145,7 @@ const { resetMapView } = useMapChart({
   z-index: 12;
   min-height: 34px;
   padding: 7px 13px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale));
   font-weight: 600;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
@@ -159,7 +159,7 @@ const { resetMapView } = useMapChart({
   align-items: center;
   justify-content: center;
   padding: 24px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale));
   color: #6b7280;
   text-align: center;
   background: rgba(249, 250, 251, 0.85);
@@ -172,16 +172,17 @@ const { resetMapView } = useMapChart({
   z-index: 10;
   width: fit-content;
   max-width: calc(100% - 24px);
-  padding: 7px 9px;
+  min-width: 148px;
+  padding: 12px 14px;
   background-color: rgba(255, 255, 255, 0.92);
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .legend-title {
-  margin-bottom: 4px;
-  padding-bottom: 3px;
-  font-size: 14px;
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+  font-size: calc(15px * var(--ui-font-scale));
   font-weight: 600;
   color: #1f2937;
   border-bottom: 1px solid #e5e7eb;
@@ -190,22 +191,22 @@ const { resetMapView } = useMapChart({
 .legend-scale {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 1px 4px;
+  gap: 6px;
+  padding: 2px 5px;
   background-color: #f9fafb;
-  border-left: 3px solid transparent;
+  border-left: 4px solid transparent;
   border-radius: 3px;
 }
 
 .legend-color {
-  width: 12px;
-  height: 8px;
+  width: 14px;
+  height: 10px;
   flex-shrink: 0;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 2px;
@@ -213,7 +214,7 @@ const { resetMapView } = useMapChart({
 
 .legend-label {
   flex: 0 0 auto;
-  font-size: 11px;
+  font-size: calc(12px * var(--ui-font-scale));
   color: #374151;
   white-space: nowrap;
 }
@@ -224,3 +225,4 @@ const { resetMapView } = useMapChart({
   }
 }
 </style>
+

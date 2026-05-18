@@ -380,7 +380,7 @@ const {
   min-width: 420px;
   min-height: 88px;
   padding: 0 36px;
-  font-size: 24px;
+  font-size: calc(24px * var(--ui-font-scale));
   font-weight: 600;
   color: #fffdf5;
   background: linear-gradient(135deg, #1d4ed8, #0f766e);
@@ -398,7 +398,7 @@ const {
 }
 
 .task-transition-text {
-  font-size: 32px;
+  font-size: calc(32px * var(--ui-font-scale));
   font-weight: 600;
   color: #111827;
   text-align: center;
@@ -428,13 +428,13 @@ const {
 
 .record-dialog-title {
   margin: 0 0 8px;
-  font-size: 24px;
+  font-size: calc(24px * var(--ui-font-scale));
   line-height: 1.2;
   color: #0f172a;
 }
 
 .record-dialog-label {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale));
   font-weight: 600;
   color: #334155;
 }
@@ -444,7 +444,7 @@ const {
   padding: 0 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-font-scale));
   color: #0f172a;
 }
 
@@ -455,7 +455,7 @@ const {
 
 .record-dialog-error {
   margin: 2px 0 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale));
   color: #b91c1c;
 }
 
@@ -472,7 +472,7 @@ const {
   height: 38px;
   border-radius: 8px;
   border: none;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale));
   font-weight: 600;
   cursor: pointer;
 }
@@ -553,8 +553,9 @@ const {
   .task-transition-button {
     min-width: 280px;
     min-height: 52px;
-    font-size: 20px;
+    font-size: calc(20px * var(--ui-font-scale));
   }
 }
 </style>
+
 
