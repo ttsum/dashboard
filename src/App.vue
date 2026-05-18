@@ -8,8 +8,12 @@
       <div class="task-transition-text">此阶段任务结束，请按 ESC 退出。</div>
     </main>
 
-    <main v-else-if="isTaskTransitionVisible" class="task-transition-screen">
-      <button type="button" class="task-transition-button" @click="enterNextTask">请注视这里，然后点击鼠标进入下一题</button>
+    <main v-else-if="isTaskTransitionVisible" class="task-transition-screen task-transition-screen-top">
+      <button type="button" class="task-transition-button" @click="enterNextTask">
+        <span>眼睛看着圆圈</span>
+        <span class="transition-circle-symbol">○</span>
+        <span>并用鼠标点击圆圈中心</span>
+      </button>
     </main>
 
     <template v-else>
@@ -376,11 +380,17 @@ const {
   background-color: #ffffff;
 }
 
+.task-transition-screen-top {
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0;
+}
+
 .task-transition-button {
-  min-width: 420px;
-  min-height: 88px;
-  padding: 0 36px;
-  font-size: calc(24px * var(--ui-font-scale));
+  min-width: 430px;
+  min-height: 62px;
+  padding: 0 22px;
+  font-size: calc(17px * var(--ui-font-scale));
   font-weight: 600;
   color: #fffdf5;
   background: linear-gradient(135deg, #1d4ed8, #0f766e);
@@ -389,6 +399,11 @@ const {
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: nowrap;
 }
 
 .task-transition-button:hover {
@@ -402,6 +417,11 @@ const {
   font-weight: 600;
   color: #111827;
   text-align: center;
+}
+
+.transition-circle-symbol {
+  font-size: calc(46px * var(--ui-font-scale));
+  line-height: 1;
 }
 
 .record-dialog-mask {
