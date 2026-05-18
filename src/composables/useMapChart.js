@@ -519,7 +519,7 @@ export function useMapChart({
     manualTooltipEl.style.borderRadius = '4px'
     manualTooltipEl.style.background = 'rgba(255, 255, 255, 0.96)'
     manualTooltipEl.style.color = '#111827'
-    manualTooltipEl.style.fontSize = `${scaleFont(12)}px`
+    manualTooltipEl.style.fontSize = `${scaleFont(14)}px`
     manualTooltipEl.style.lineHeight = '1.55'
     manualTooltipEl.style.pointerEvents = 'none'
     manualTooltipEl.style.border = '1px solid rgba(209, 213, 219, 0.95)'
@@ -1138,7 +1138,7 @@ export function useMapChart({
         showDelay: 0,
         hideDelay: 80,
         textStyle: {
-          fontSize: scaleFont(12)
+          fontSize: scaleFont(14)
         },
         formatter: (params) => {
           if (['city-label-overlay', 'county-label-overlay'].includes(params?.seriesName)) {
